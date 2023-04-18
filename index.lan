@@ -1,0 +1,8 @@
+res x = nirv
+
+fn makeXNum() {
+	x = 5
+} "Make X a number."
+
+makeXNum()
+sys_println(typeof(x))
