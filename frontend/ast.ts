@@ -7,6 +7,7 @@ export type NodeType =
 					 | "AssignmentExpr"
 					 | "MemberExpr"
 					 | "CallExpr"
+					 | "Comment"
 
 					 | "Property"
 					 | "ObjectLiteral"

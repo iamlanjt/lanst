@@ -4,6 +4,7 @@ export enum TokenType {
 	String = "String",
 	Eq = "Eq",
 	Comma = "Comma",
+	Slash = "Slash",
 	Colon = "Colon",
 	OpenBrace = "OpenBrace",
 	CloseBrace = "CloseBrace",
@@ -72,6 +73,10 @@ export function tokenize(source: string): Token[] {
 	while (src.length > 0) {
 		line_idx++
 		switch (src[0].toString()) {
+			case '?': {
+				tokens.push(new Token(src.shift(), TokenType.Slash, line, line_idx))
+				break
+			}
 			case '(': {
 				tokens.push(new Token(src.shift(), TokenType.OpenParen, line, line_idx))
 				break

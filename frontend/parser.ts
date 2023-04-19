@@ -16,7 +16,8 @@ import { ObjectLiteral } from "../ast_types/ObjectLiteral.ts";
 import { CallExpr } from "../ast_types/CallExpr.ts";
 import { MemberExpr } from "../ast_types/MemberExpr.ts";
 import { StringLiteral } from "../ast_types/StringLiteral.ts";
-// import { MK_NIRV, NirvVal } from "../runtime/value.ts";
+import { MK_NIRV, NirvVal } from "../runtime/value.ts";
+import { Comment } from "../ast_types/Comment.ts";
 
 function get_error_scope(
   leftExtension = 15,
@@ -303,7 +304,7 @@ export default class Parser {
         property = this.parse_primary_expr();
 
         if (property.kind != "Identifier") {
-          throw `Right-Hand of ' ${operator} ' must be an Identifier, found '${property.kind}'`;
+          throw `Right-Hand of '${operator.value}' must be an Identifier, found '${property.kind}'`;
         }
       } else {
         computed = true;
@@ -334,6 +335,17 @@ export default class Parser {
       case TokenType.String: {
         return new StringLiteral(this.eat().value);
       }
+
+	  // deno-lint-ignore no-fallthrough
+	  case TokenType.Slash: {
+		if (this.peek(1).type == TokenType.Slash) {
+			this.eat()
+			this.eat()
+			let comment = this.expect(TokenType.String, `Expected String following comment declaration, got ${this.at.type}`)
+			return new Comment(comment.value)
+		}
+		return new Comment("e")
+	  }
 
       case TokenType.OpenParen: {
         this.eat();

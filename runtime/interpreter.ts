@@ -13,6 +13,7 @@ import {
   eval_assignment,
   eval_call_expr,
   eval_identifier,
+  eval_member_expr,
   evaluate_binary_expr,
 } from "./eval/expressions.ts";
 import {
@@ -26,9 +27,14 @@ import { ObjectLiteral } from "../ast_types/ObjectLiteral.ts";
 import { CallExpr } from "../ast_types/CallExpr.ts";
 import { StringLiteral } from "../ast_types/StringLiteral.ts";
 import { FunctionDeclaration } from "../ast_types/FunctionDeclaration.ts";
+import { MemberExpr } from "../ast_types/MemberExpr.ts";
+import { Comment } from "../ast_types/Comment.ts";
 
 export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
   switch (astNode.kind) {
+	case "Comment":
+		return new Comment((astNode as Comment).value)
+
     case "NumericalLiteral":
       return new NumberVal((astNode as NumericLiteral).value);
 
@@ -40,6 +46,9 @@ export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 
     case "ObjectLiteral":
       return eval_object_expr(astNode as ObjectLiteral, env);
+
+	case "MemberExpr":
+		return eval_member_expr(astNode as MemberExpr, env)
 
     case "CallExpr":
       return eval_call_expr(astNode as CallExpr, env);
