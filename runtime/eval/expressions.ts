@@ -2,15 +2,18 @@ import { AssignmentExpr } from "../../ast_types/AssignmentExpr.ts";
 import { BinaryExpr } from "../../ast_types/BinaryExpression.ts";
 import { CallExpr } from "../../ast_types/CallExpr.ts";
 import { Identifier } from "../../ast_types/Identifier.ts";
+import { IfStatement } from "../../ast_types/IfStatement.ts";
 import { MemberExpr } from "../../ast_types/MemberExpr.ts";
 import { ObjectLiteral } from "../../ast_types/ObjectLiteral.ts";
 import { StringLiteral } from "../../ast_types/StringLiteral.ts";
 import { VarDeclaration } from "../../ast_types/VariableDeclaration.ts";
 import { NumericLiteral } from "../../ast_types/types.ts";
+import { TokenType } from "../../frontend/lexer.ts";
 import Environment from "../environment.ts";
 import { evaluate } from "../interpreter.ts";
 import {
   FunctionValue,
+  MK_BOOL,
   MK_NIRV,
   NaitveFnValue,
   NumberVal,
@@ -127,6 +130,45 @@ export function eval_member_expr(
   expr: MemberExpr,
   env: Environment,
 ): RuntimeVal {
+
+	return MK_NIRV()
+}
+
+
+export function eval_if_statement(expr: IfStatement, env: Environment): RuntimeVal {
+	const lhs = evaluate(expr.condition.lhs, env)
+	const rhs = evaluate(expr.condition.rhs, env)
+	const comparator = expr.condition.comparator
+
+	if (lhs.type !== rhs.type)
+		throw `Cannot compare ${lhs.type} to ${rhs.type}.`
+
+	let compare_left
+	let compare_right
+	
+	switch(lhs.type) {
+		case 'number': {
+			compare_left = (lhs as NumberVal).value
+			compare_right = (rhs as NumberVal).value
+		}
+	}
+
+	if (!compare_left || !compare_right)
+		throw `Cannot compare NIRV values.`
+
+	let result
+
+	switch (comparator.type) {
+		case TokenType.Gt: {
+			result = compare_left > compare_right
+		}
+	}
+
+	if (result === true) {
+		for (const ex of expr.body) {
+			evaluate(ex, env)
+		}
+	}
 
 	return MK_NIRV()
 }

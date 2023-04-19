@@ -3,11 +3,13 @@ export type NodeType =
 					 | "Program"
 					 | "VarDeclaration"
 					 | "FunctionDeclaration"
+					 | "IfStatement"
 					  // EXPRESSIONS
 					 | "AssignmentExpr"
 					 | "MemberExpr"
 					 | "CallExpr"
 					 | "Comment"
+					 | "Comparator"
 
 					 | "Property"
 					 | "ObjectLiteral"

@@ -22,13 +22,14 @@ import {
   eval_var_declaration,
 } from "./eval/statements.ts";
 import { AssignmentExpr } from "../ast_types/AssignmentExpr.ts";
-import { eval_object_expr } from "./eval/expressions.ts";
+import { eval_object_expr, eval_if_statement } from "./eval/expressions.ts";
 import { ObjectLiteral } from "../ast_types/ObjectLiteral.ts";
 import { CallExpr } from "../ast_types/CallExpr.ts";
 import { StringLiteral } from "../ast_types/StringLiteral.ts";
 import { FunctionDeclaration } from "../ast_types/FunctionDeclaration.ts";
 import { MemberExpr } from "../ast_types/MemberExpr.ts";
 import { Comment } from "../ast_types/Comment.ts";
+import { IfStatement } from '../ast_types/IfStatement.ts';
 
 export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
   switch (astNode.kind) {
@@ -43,6 +44,9 @@ export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 
     case "Identifier":
       return eval_identifier(astNode as Identifier, env);
+
+	case "IfStatement":
+		return eval_if_statement(astNode as IfStatement, env)
 
     case "ObjectLiteral":
       return eval_object_expr(astNode as ObjectLiteral, env);

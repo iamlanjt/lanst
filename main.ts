@@ -73,6 +73,7 @@ async function run(filename: string) {
   const parser = new Parser(input);
   const env = createGlobalEnv();
   const program = parser.produceAST(input);
+  // console.log(program)
 
   // const settings = handle_interp_options(program)
 

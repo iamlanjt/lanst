@@ -18,6 +18,8 @@ import { MemberExpr } from "../ast_types/MemberExpr.ts";
 import { StringLiteral } from "../ast_types/StringLiteral.ts";
 import { MK_NIRV, NirvVal } from "../runtime/value.ts";
 import { Comment } from "../ast_types/Comment.ts";
+import { IfStatement } from "../ast_types/IfStatement.ts";
+import { Comparator } from '../ast_types/Comparator.ts';
 
 function get_error_scope(
   leftExtension = 15,
@@ -99,11 +101,13 @@ export default class Parser {
   private parse_stmt(): Stmt {
     // skip to parse_expr
     switch (this.at.type) {
-      case TokenType.Reserve:
-      case TokenType.ReserveLocked:
-        return this.parse_var_declaration();
-      case TokenType.Fn:
-        return this.parse_fn_declaration();
+		case TokenType.Reserve:
+		case TokenType.ReserveLocked:
+			return this.parse_var_declaration();
+		case TokenType.Fn:
+			return this.parse_fn_declaration();
+		case TokenType.If:
+			return this.parse_if_statement();
 
       default:
         return this.parse_expr();
@@ -173,12 +177,29 @@ export default class Parser {
     return declaration;
   }
 
+  // if (expr) {block}
+  private parse_if_statement(): Expr {
+	this.eat() // eat "if" token
+	const comparator = this.parse_comparator_expr()
+	this.expect(TokenType.OpenBrace, "Expected body");
+
+    const body: Stmt[] = [];
+
+    while (this.not_eof && this.at.type !== TokenType.CloseBrace) {
+      body.push(this.parse_stmt());
+    }
+
+    this.expect(TokenType.CloseBrace, "Closing brace expected following if statement body.");
+
+	return new IfStatement(comparator, body)
+  }
+
   private parse_expr(): Expr {
     return this.parse_assignment_expr();
   }
 
   private parse_assignment_expr(): Expr {
-    const left = this.parse_object_expr();
+    const left = this.parse_comparator_expr();
     if (this.at.type == TokenType.Eq) {
       this.eat();
       const value = this.parse_assignment_expr();
@@ -186,6 +207,17 @@ export default class Parser {
     }
 
     return left;
+  }
+
+  private parse_comparator_expr(): Expr {
+	if (this.peek(1).type !== TokenType.Gt && this.peek(1).type !== TokenType.Lt)
+		return this.parse_object_expr()
+
+	let lhs = this.parse_object_expr()
+	const operator = this.eat()
+	const rhs = this.parse_object_expr()
+	
+	return new Comparator(lhs, rhs, operator)
   }
 
   private parse_object_expr(): Expr {
