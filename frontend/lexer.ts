@@ -18,11 +18,13 @@ export enum TokenType {
 	If = "If",
 	Gt = "Gt",
 	Lt = "Lt",
+	DoubleEq = "DoubleEq",
 	
 	BinaryOp = "BinaryOp",
 
 	Reserve = "Reserve",
 	ReserveLocked = "ReserveLocked",
+	Throw = "Throw",
 
 	EOF = "EOF",
 }
@@ -31,7 +33,8 @@ export const RESERVED: Record<string, TokenType> = {
 	"res": TokenType.Reserve,
 	"reslock": TokenType.ReserveLocked,
 	"fn": TokenType.Fn,
-	"if": TokenType.If
+	"if": TokenType.If,
+	"throw": TokenType.Throw,
 }
 
 export interface Token {
@@ -136,7 +139,13 @@ export function tokenize(source: string): Token[] {
 				break
 			}
 			case '=': {
-				tokens.push(new Token(src.shift(), TokenType.Eq, line, line_idx))
+				if (src[1] === "=") {
+					src.shift()
+					src.shift()
+					tokens.push(new Token("==", TokenType.DoubleEq, line, line_idx))
+				} else {
+					tokens.push(new Token(src.shift(), TokenType.Eq, line, line_idx))
+				}
 				break
 			}
 			case ';': {

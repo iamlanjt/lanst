@@ -14,6 +14,7 @@ import {
   eval_call_expr,
   eval_identifier,
   eval_member_expr,
+  eval_thrower,
   evaluate_binary_expr,
 } from "./eval/expressions.ts";
 import {
@@ -30,8 +31,11 @@ import { FunctionDeclaration } from "../ast_types/FunctionDeclaration.ts";
 import { MemberExpr } from "../ast_types/MemberExpr.ts";
 import { Comment } from "../ast_types/Comment.ts";
 import { IfStatement } from '../ast_types/IfStatement.ts';
+import { Comparator } from "../ast_types/Comparator.ts";
+import { eval_comparator } from './eval/expressions.ts';
+import { Thrower } from "../ast_types/Thrower.ts";
 
-export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
+export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
   switch (astNode.kind) {
 	case "Comment":
 		return new Comment((astNode as Comment).value)
@@ -42,8 +46,14 @@ export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
     case "StringLiteral":
       return new StringVal((astNode as StringLiteral).value);
 
+	case "Thrower": 
+		return eval_thrower(astNode as Thrower, env)
+	
     case "Identifier":
       return eval_identifier(astNode as Identifier, env);
+
+	case "Comparator":
+		return await eval_comparator(astNode as Comparator, env)
 
 	case "IfStatement":
 		return eval_if_statement(astNode as IfStatement, env)
@@ -55,7 +65,7 @@ export function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 		return eval_member_expr(astNode as MemberExpr, env)
 
     case "CallExpr":
-      return eval_call_expr(astNode as CallExpr, env);
+      return await eval_call_expr(astNode as CallExpr, env);
 
     case "AssignmentExpr":
       return eval_assignment(astNode as AssignmentExpr, env);

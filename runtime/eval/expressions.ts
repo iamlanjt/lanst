@@ -21,6 +21,10 @@ import {
   StringVal,
 } from "../value.ts";
 import { ObjectVal } from "../value.ts";
+import { Comparator } from '../../ast_types/Comparator.ts';
+import { Stmt } from '../../ast_types/Statement.ts';
+import { BoolVal } from '../value.ts';
+import { Thrower } from "../../ast_types/Thrower.ts";
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -95,35 +99,46 @@ export function eval_object_expr(
   return object;
 }
 
-export function eval_call_expr(expr: CallExpr, env: Environment): RuntimeVal {
-  const args = expr.args.map((arg) => evaluate(arg, env));
-  const fn = evaluate(expr.caller, env);
+export function eval_call_expr(expr: CallExpr, env: Environment): Promise<RuntimeVal> {
+	// deno-lint-ignore no-async-promise-executor
+	return new Promise(async(res, rej)=>{
+		const args = await expr.args.map(async(arg) => await evaluate(arg, env));
+		//console.log('bargs', args)
+		const fn = await evaluate(expr.caller, env);
+		//console.log(expr.caller, fn)
+		const newargs = []
+		for (const arg of args) {
+			newargs.push((await arg))
+		}
+		if (fn.type == "native-fn") {
+			const result = await (fn as NaitveFnValue).call(newargs, env);
+			//console.log('res', result)
+			res(result)
+			return
+		} else if (fn.type == "function") {
+			const func = fn as FunctionValue;
+			const scope = new Environment(func.declarationEnv);
 
-  if (fn.type == "native-fn") {
-    const result = (fn as NaitveFnValue).call(args, env);
-    return result;
-  } else if (fn.type == "function") {
-    const func = fn as FunctionValue;
-    const scope = new Environment(func.declarationEnv);
+			for (let i = 0; i < func.params.length; i++) {
+				// TODO check the bounds here
+				const varname = func.params[i];
+				scope.declareVar(varname, newargs[i], false);
+			}
 
-    for (let i = 0; i < func.params.length; i++) {
-      // TODO check the bounds here
-      const varname = func.params[i];
-      scope.declareVar(varname, args[i], false);
-    }
+			let result: RuntimeVal = MK_NIRV();
 
-    let result: RuntimeVal = MK_NIRV();
+			for await (const stmt of func.body) {
+				result = await evaluate(stmt, scope);
+			}
 
-    for (const stmt of func.body) {
-      result = evaluate(stmt, scope);
-    }
+			res(result);
+			return
+		}
 
-    return result;
-  }
-
-  throw `[LAN:E0001]: Attempt to call value that is not of type "function": ${
-    JSON.stringify(fn)
-  }`;
+		throw `[LAN:E0001]: Attempt to call value that is not of type "function": ${
+			JSON.stringify(fn)
+		}`;
+	})
 }
 
 export function eval_member_expr(
@@ -135,10 +150,25 @@ export function eval_member_expr(
 }
 
 
-export function eval_if_statement(expr: IfStatement, env: Environment): RuntimeVal {
-	const lhs = evaluate(expr.condition.lhs, env)
-	const rhs = evaluate(expr.condition.rhs, env)
+export async function eval_if_statement(expr: IfStatement, env: Environment): RuntimeVal {
 	const comparator = expr.condition.comparator
+	const condition_results = await eval_comparator(expr.condition, env)
+
+	if ((condition_results as unknown as BoolVal).value === true) {
+		for await (const ex of expr.body) {
+			await evaluate(ex, env)
+		}
+	}
+
+	return MK_NIRV()
+}
+
+export async function eval_comparator(expr: Comparator, env: Environment): RuntimeVal {
+	// console.log(expr.rhs)
+	const lhs = await evaluate(expr.lhs, env)
+	const rhs = await evaluate(expr.rhs, env)
+	//console.log(expr.rhs)
+	const comparator = expr.comparator
 
 	if (lhs.type !== rhs.type)
 		throw `Cannot compare ${lhs.type} to ${rhs.type}.`
@@ -161,14 +191,25 @@ export function eval_if_statement(expr: IfStatement, env: Environment): RuntimeV
 	switch (comparator.type) {
 		case TokenType.Gt: {
 			result = compare_left > compare_right
+			break
+		}
+		case TokenType.Lt: {
+			result = compare_left < compare_right
+			break
+		}
+		case TokenType.DoubleEq: {
+			result = compare_left == compare_right
 		}
 	}
 
-	if (result === true) {
-		for (const ex of expr.body) {
-			evaluate(ex, env)
-		}
-	}
+	return MK_BOOL(result)
+}
+
+export function eval_thrower(expr: Thrower, env: Environment): RuntimeVal {
+	const reason = expr.reason
+
+	console.error(reason)
+	Deno.exit(1)
 
 	return MK_NIRV()
 }

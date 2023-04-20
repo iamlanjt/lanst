@@ -2,6 +2,7 @@ import { MK_BOOL, MK_NATIVE_FN, MK_NIRV, MK_NUMBER, MK_STRING, NumberVal, Runtim
 import process from 'node:process'
 import { evaluate } from './interpreter.ts';
 import Parser from "../frontend/parser.ts";
+import { sleep } from '../other/sleep.ts';
 
 export function createGlobalEnv() {
 	const env = new Environment()
@@ -89,13 +90,13 @@ export function createGlobalEnv() {
 		return MK_NIRV()
 	}
 
-	function _toNumber(args: RuntimeVal[], env: Environment) {
+	async function _toNumber(args: RuntimeVal[], env: Environment) {
 		if (args.length !== 1)
 			throw `Expected args to be length of 1.`
 		
-		switch (args[0].type) {
+		switch ((await args[0]).type) {
 			case 'string': {
-				return MK_NUMBER(parseInt((args[0] as StringVal).value))
+				return MK_NUMBER(parseInt(((await args[0]) as StringVal).value))
 			}
 		}
 
@@ -109,6 +110,24 @@ export function createGlobalEnv() {
 		return MK_STRING(args[0].type)
 	}
 
+	async function _sleep(args: RuntimeVal[], env: Environment) {
+		if (args.length !== 1)
+			throw `Expected args to be a length of 1.`
+		if ((args[0].type as unknown) !== "number")
+			throw `Expected number for sleep, got ${args[0].type}`
+
+		await sleep((args[0] as unknown).value)
+		return MK_NIRV()
+	}
+
+	function _throw(args: RuntimeVal[], env: Environment): RuntimeVal {
+		throw `${(args.map((a)=>{return a.value})).join()}`
+	}
+
+	function _str_format(args: RuntimeVal[], env: Environment) {
+		
+	}
+
 	// Env-declare all predeclared functions
 	env.declareVar("time", MK_NATIVE_FN(sys_time), true)
 	env.declareVar("search_env", MK_NATIVE_FN(sys_search_env), true)
@@ -118,6 +137,7 @@ export function createGlobalEnv() {
 	env.declareVar("tostring", MK_NATIVE_FN(_toString), true)
 	env.declareVar("tonumber", MK_NATIVE_FN(_toNumber), true)
 	env.declareVar("typeof", MK_NATIVE_FN(_typeof), true)
+	env.declareVar("sleep", MK_NATIVE_FN(_sleep), true)
 
 	return env
 }

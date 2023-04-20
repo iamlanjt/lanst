@@ -5,22 +5,22 @@ import Environment from "../environment.ts";
 import { evaluate } from "../interpreter.ts";
 import { FunctionValue, MK_NIRV, RuntimeVal } from "../value.ts";
 
-export function eval_program(program: Program, env: Environment): RuntimeVal {
+export async function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NIRV();
 
   for (const statement of program.body) {
-    lastEvaluated = evaluate(statement, env);
+    lastEvaluated = await evaluate(statement, env);
   }
 
   return lastEvaluated;
 }
 
-export function eval_var_declaration(
+export async function eval_var_declaration(
   declaration: VarDeclaration,
   env: Environment,
 ): RuntimeVal {
   const value = declaration.value
-    ? evaluate(declaration.value, env)
+    ? await evaluate(declaration.value, env)
     : MK_NIRV();
 
   return env.declareVar(declaration.identifier, value, declaration.locked);

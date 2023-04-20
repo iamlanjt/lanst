@@ -1,5 +1,2 @@
-reslock x = 14
-
-if x > 14 {
-	sys_println(x, "is greater than 14.")
-}
+sleep(5000)
+sys_println("hi")

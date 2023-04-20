@@ -10,6 +10,7 @@ export type NodeType =
 					 | "CallExpr"
 					 | "Comment"
 					 | "Comparator"
+					 | "Thrower"
 
 					 | "Property"
 					 | "ObjectLiteral"

@@ -20,6 +20,7 @@ import { MK_NIRV, NirvVal } from "../runtime/value.ts";
 import { Comment } from "../ast_types/Comment.ts";
 import { IfStatement } from "../ast_types/IfStatement.ts";
 import { Comparator } from '../ast_types/Comparator.ts';
+import { Thrower } from "../ast_types/Thrower.ts";
 
 function get_error_scope(
   leftExtension = 15,
@@ -198,6 +199,15 @@ export default class Parser {
     return this.parse_assignment_expr();
   }
 
+  private parse_throw(): Expr {
+	if (this.at.type == TokenType.Throw) {
+		this.eat()
+		const reason = this.expect(TokenType.String, "Expecting string for throw expression")
+		return new Thrower(reason.value)
+	}
+	return this.parse_assignment_expr()
+  }
+
   private parse_assignment_expr(): Expr {
     const left = this.parse_comparator_expr();
     if (this.at.type == TokenType.Eq) {
@@ -210,7 +220,7 @@ export default class Parser {
   }
 
   private parse_comparator_expr(): Expr {
-	if (this.peek(1).type !== TokenType.Gt && this.peek(1).type !== TokenType.Lt)
+	if (this.peek(1).type !== TokenType.Gt && this.peek(1).type !== TokenType.Lt && this.peek(1).type !== TokenType.DoubleEq)
 		return this.parse_object_expr()
 
 	let lhs = this.parse_object_expr()
@@ -356,6 +366,10 @@ export default class Parser {
     const tk = this.at.type;
 
     switch (tk) {
+	  case TokenType.Throw: {
+		return this.parse_throw()
+	  }
+
       case TokenType.Identifier: {
         return new Identifier(this.eat().value);
       }
