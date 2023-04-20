@@ -45,12 +45,12 @@ function eval_numeric_binary_expr(
   return new NumberVal(result);
 }
 
-export function evaluate_binary_expr(
+export async function evaluate_binary_expr(
   binop: BinaryExpr,
   env: Environment,
 ): RuntimeVal {
-  const lhs = evaluate(binop.left, env);
-  const rhs = evaluate(binop.right, env);
+  const lhs = await evaluate(binop.left, env);
+  const rhs = await evaluate(binop.right, env);
 
   // Handle LHS: NUMBER -> all types
   if (lhs.type == "number" && rhs.type == "number") {
