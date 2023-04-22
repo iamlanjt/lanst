@@ -4,6 +4,8 @@ export type NodeType =
 					 | "VarDeclaration"
 					 | "FunctionDeclaration"
 					 | "IfStatement"
+					 | "WhileLoop"
+					 | "Decorator"
 					  // EXPRESSIONS
 					 | "AssignmentExpr"
 					 | "MemberExpr"

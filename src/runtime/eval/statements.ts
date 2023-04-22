@@ -1,9 +1,12 @@
 import { FunctionDeclaration } from "../../ast_types/FunctionDeclaration.ts";
 import { Program } from "../../ast_types/Program.ts";
 import { VarDeclaration } from "../../ast_types/VariableDeclaration.ts";
+import { TokenType } from "../../frontend/lexer.ts";
 import Environment from "../environment.ts";
 import { evaluate } from "../interpreter.ts";
 import { FunctionValue, MK_NIRV, RuntimeVal } from "../value.ts";
+import { Identifier } from '../../ast_types/Identifier.ts';
+import { MK_MOVED } from '../value.ts';
 
 export async function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NIRV();
@@ -23,7 +26,11 @@ export async function eval_var_declaration(
     ? await evaluate(declaration.value, env)
     : MK_NIRV();
 
-  return env.declareVar(declaration.identifier, value, declaration.locked);
+  if((declaration.value as unknown as Identifier).kind === TokenType.Identifier) {
+	env.assignVar(declaration.value.symbol, MK_MOVED(declaration.identifier), true)
+  }
+
+  return env.declareVar(declaration.identifier, value, declaration.locked, "PROGRAM");
 }
 
 export function eval_function_declaration(
@@ -35,6 +42,7 @@ export function eval_function_declaration(
     declaration.parameters,
     env,
     declaration.body,
+	declaration.decorators,
   );
 
   return env.declareVar(declaration.name, fn, true);

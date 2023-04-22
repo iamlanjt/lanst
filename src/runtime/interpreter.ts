@@ -15,6 +15,7 @@ import {
   eval_identifier,
   eval_member_expr,
   eval_thrower,
+  eval_while_loop,
   evaluate_binary_expr,
 } from "./eval/expressions.ts";
 import {
@@ -34,6 +35,7 @@ import { IfStatement } from '../ast_types/IfStatement.ts';
 import { Comparator } from "../ast_types/Comparator.ts";
 import { eval_comparator } from './eval/expressions.ts';
 import { Thrower } from "../ast_types/Thrower.ts";
+import { WhileLoop } from '../ast_types/WhileLoop.ts';
 
 export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
   switch (astNode.kind) {
@@ -55,6 +57,9 @@ export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 	case "Comparator":
 		return await eval_comparator(astNode as Comparator, env)
 
+	case "WhileLoop":
+		return await eval_while_loop(astNode as WhileLoop, env)
+
 	case "IfStatement":
 		return eval_if_statement(astNode as IfStatement, env)
 
@@ -62,7 +67,7 @@ export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
       return eval_object_expr(astNode as ObjectLiteral, env);
 
 	case "MemberExpr":
-		return eval_member_expr(astNode as MemberExpr, env)
+		return await eval_member_expr(astNode as MemberExpr, env)
 
     case "CallExpr":
       return await eval_call_expr(astNode as CallExpr, env);

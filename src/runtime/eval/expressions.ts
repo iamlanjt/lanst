@@ -7,7 +7,7 @@ import { MemberExpr } from "../../ast_types/MemberExpr.ts";
 import { ObjectLiteral } from "../../ast_types/ObjectLiteral.ts";
 import { StringLiteral } from "../../ast_types/StringLiteral.ts";
 import { VarDeclaration } from "../../ast_types/VariableDeclaration.ts";
-import { NumericLiteral } from "../../ast_types/types.ts";
+import { Expr, NumericLiteral } from "../../ast_types/types.ts";
 import { TokenType } from "../../frontend/lexer.ts";
 import Environment from "../environment.ts";
 import { evaluate } from "../interpreter.ts";
@@ -15,6 +15,7 @@ import {
   FunctionValue,
   MK_BOOL,
   MK_NIRV,
+  MovedVal,
   NaitveFnValue,
   NumberVal,
   RuntimeVal,
@@ -25,6 +26,7 @@ import { Comparator } from '../../ast_types/Comparator.ts';
 import { Stmt } from '../../ast_types/Statement.ts';
 import { BoolVal } from '../value.ts';
 import { Thrower } from "../../ast_types/Thrower.ts";
+import { WhileLoop } from '../../ast_types/WhileLoop.ts';
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -69,6 +71,10 @@ export function eval_identifier(
   env: Environment,
 ): RuntimeVal {
   const val = env.lookupVar(ident.symbol);
+  if (val.type === "moved") {
+	console.log(`Attempt to access value "${ident.symbol}" which has been moved to "${(val as MovedVal).new_location}".\n\nBasic error reconstruction:\n\nres ${ident.symbol} = 5\nres ${(val as MovedVal).new_location} = ${ident.symbol}\nsys_println(${ident.symbol}) <- "${ident.symbol}" no longer exists here`)
+	Deno.exit(1)
+  }
   return val;
 }
 
@@ -99,6 +105,21 @@ export function eval_object_expr(
   return object;
 }
 
+// Format:
+// for fn(1, 2, 3):
+// memoized_results[0] = {args: [1, 2, 3], fnName: "fn", result: 5}
+const memoized_results: any = []
+
+function equal_args(one, two) {
+	if (one.length !== two.length) return false
+	let i = 0
+	for(const arg of one) {
+		if (two[i].value !== arg.value) return false
+		i += 1
+	}
+	return true
+}
+
 export function eval_call_expr(expr: CallExpr, env: Environment): Promise<RuntimeVal> {
 	// deno-lint-ignore no-async-promise-executor
 	return new Promise(async(res, rej)=>{
@@ -106,7 +127,7 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 		//console.log('bargs', args)
 		const fn = await evaluate(expr.caller, env);
 		//console.log(expr.caller, fn)
-		const newargs = []
+		const newargs: any = []
 		for (const arg of args) {
 			newargs.push((await arg))
 		}
@@ -118,6 +139,16 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 		} else if (fn.type == "function") {
 			const func = fn as FunctionValue;
 			const scope = new Environment(func.declarationEnv);
+
+			// should we try to pull previous requests from a cache?
+			const isMemoized = (func.decorators.find((decorator)=>{return (decorator.type as unknown) === TokenType.Memoize}) !== undefined)
+
+			const memoization = memoized_results.find((memory)=>{
+				return equal_args(memory.args, newargs) == true && memory.fnName == (fn as FunctionValue).name
+			})
+			if (isMemoized && (memoization !== undefined)) {
+				return memoization.result
+			}
 
 			for (let i = 0; i < func.params.length; i++) {
 				// TODO check the bounds here
@@ -131,6 +162,15 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 				result = await evaluate(stmt, scope);
 			}
 
+			if (isMemoized && (memoization === undefined)) {
+				const mem = {
+					args: newargs,
+					fnName: (fn as FunctionValue).name,
+					result
+				}
+				memoized_results.push(mem)
+			}
+
 			res(result);
 			return
 		}
@@ -141,17 +181,27 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 	})
 }
 
-export function eval_member_expr(
+export async function eval_member_expr(
   expr: MemberExpr,
   env: Environment,
 ): RuntimeVal {
-
+	
 	return MK_NIRV()
 }
 
+export async function eval_while_loop(expr: WhileLoop, env: Environment): RuntimeVal {
+	let condition_results = await eval_comparator(expr.condition, env)
+
+	while ((condition_results as unknown as BoolVal).value === true) {
+		for await (const ex of expr.body) {
+			await evaluate(ex, env)
+		}
+
+		condition_results = await eval_comparator(expr.condition, env)
+	}
+}
 
 export async function eval_if_statement(expr: IfStatement, env: Environment): RuntimeVal {
-	const comparator = expr.condition.comparator
 	const condition_results = await eval_comparator(expr.condition, env)
 
 	if ((condition_results as unknown as BoolVal).value === true) {

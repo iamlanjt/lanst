@@ -21,6 +21,8 @@ import { Comment } from "../ast_types/Comment.ts";
 import { IfStatement } from "../ast_types/IfStatement.ts";
 import { Comparator } from '../ast_types/Comparator.ts';
 import { Thrower } from "../ast_types/Thrower.ts";
+import { WhileLoop } from "../ast_types/WhileLoop.ts";
+import { Decorator } from "../ast_types/Decorator.ts";
 
 function get_error_scope(
   leftExtension = 15,
@@ -105,10 +107,13 @@ export default class Parser {
 		case TokenType.Reserve:
 		case TokenType.ReserveLocked:
 			return this.parse_var_declaration();
+		case TokenType.Memoize:
 		case TokenType.Fn:
 			return this.parse_fn_declaration();
 		case TokenType.If:
 			return this.parse_if_statement();
+		case TokenType.While:
+			return this.parse_while_loop();
 
       default:
         return this.parse_expr();
@@ -116,7 +121,15 @@ export default class Parser {
   }
 
   private parse_fn_declaration(): Stmt {
-    this.eat();
+	const decorators: Decorator[] = []
+	while (this.at.type === TokenType.Memoize) {
+		if (decorators.find((decorator)=>{
+			return decorator.type === this.at.type
+		}))
+			throw `Multiple decorators of the same type found in parsing: ${this.at.type}`
+		decorators.push(new Decorator(this.eat().type)) // push all decorators into the decorator array
+	}
+    this.eat(); // eat `fn` token
     const name =
       this.expect(TokenType.Identifier, "Expected function name").value;
 
@@ -143,7 +156,7 @@ export default class Parser {
       "Token string description expected at end",
     );
 
-    const fn = new FunctionDeclaration(params, name, body, desc.value);
+    const fn = new FunctionDeclaration(params, name, body, desc.value, decorators);
 
     return fn;
   }
@@ -193,6 +206,22 @@ export default class Parser {
     this.expect(TokenType.CloseBrace, "Closing brace expected following if statement body.");
 
 	return new IfStatement(comparator, body)
+  }
+
+  private parse_while_loop(): Expr {
+	this.eat() // eat "while" token
+	const comparator = this.parse_comparator_expr()
+	this.expect(TokenType.OpenBrace, "Expected body");
+
+    const body: Stmt[] = [];
+
+    while (this.not_eof && this.at.type !== TokenType.CloseBrace) {
+      body.push(this.parse_stmt());
+    }
+
+    this.expect(TokenType.CloseBrace, "Closing brace expected following while statement body.");
+
+	return new WhileLoop(comparator, body)
   }
 
   private parse_expr(): Expr {

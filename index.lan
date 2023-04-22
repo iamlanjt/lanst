@@ -1,5 +1,0 @@
-reslock eins = time()
-sleep(5000)
-reslock zwei = time()
-
-sys_println(zwei-eins)

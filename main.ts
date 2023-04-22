@@ -1,11 +1,13 @@
-import Parser from "./frontend/parser.ts";
-import { evaluate } from "./runtime/interpreter.ts";
-import Environment from "./runtime/environment.ts";
-import { createGlobalEnv } from "./runtime/environment.ts";
-import { tokenize, TokenType } from "./frontend/lexer.ts";
-import { Program } from "./ast_types/Program.ts";
-import { Expr } from "./ast_types/types.ts";
-import { Comment } from "./ast_types/Comment.ts";
+import Parser from "./src/frontend/parser.ts";
+import { evaluate } from "./src/runtime/interpreter.ts";
+import Environment from "./src/runtime/environment.ts";
+import { createGlobalEnv } from "./src/runtime/environment.ts";
+import { tokenize, TokenType } from "./src/frontend/lexer.ts";
+import { Program } from "./src/ast_types/Program.ts";
+import { Expr } from "./src/ast_types/types.ts";
+import { Comment } from "./src/ast_types/Comment.ts";
+import { MK_BOOL } from './src/runtime/value.ts';
+import chalk from 'npm:chalk@5.2.0'
 
 const mode: "run" | "repl" = "run";
 const filepath = "./index.lan";
@@ -22,33 +24,6 @@ if ((mode as unknown) == "repl") {
 } else if (mode == "run") {
   run(filepath);
 }
-
-function convertStringToObject(input: string): object {
-	const parts = input.split(" ");
-	let result: any = {};
-  
-	for (let i = 0; i < parts.length; i++) {
-	  const current = parts[i];
-  
-	  if (current.includes("-")) {
-		const [key, value] = current.split("-");
-		if (!result[key]) {
-		  result[key] = {};
-		}
-		if (i === parts.length - 1) {
-		  result[key][value] = true;
-		} else if (parts[i + 1].includes("-")) {
-		  result[key][value] = {};
-		} else {
-		  result[key][value] = true;
-		}
-	  } else {
-		continue;
-	  }
-	}
-  
-	return result;
-  }
   
 
 function handle_interp_options(program: Program) {
@@ -61,7 +36,7 @@ function handle_interp_options(program: Program) {
 
 	const toggles = []
 	for (const comment of interp_comments) {
-		toggles.push(convertStringToObject((comment as Comment).value))
+		toggles.push((comment as Comment).value)
 	}
 	return toggles
 }
@@ -73,12 +48,37 @@ async function run(filename: string) {
   const parser = new Parser(input);
   const env = createGlobalEnv();
   const program = parser.produceAST(input);
-  // console.log(program.body)
 
-  // const settings = handle_interp_options(program)
-
-  // if (settings["lan-interp"]["no-evaluation"])
-  evaluate(program, env);
+  const settings = handle_interp_options(program)
+  if (settings.includes("lan-interp debug")) {
+	for (const ast of program.body) {
+		const eval_results = await evaluate(ast, env)
+		console.log()
+		console.log(chalk.greenBright(`~~~~~~~~ New AST node evaluated ~~~~~~~~`))
+		console.log(`\nCurrent user-declared environment:\n`)
+		const _env: any[] = []
+		for(const key of env.variables.keys()) {
+			const v = env.variables.get(key)
+			if (v.creator === "PROGRAM") {
+				_env[chalk.red(key)] = {
+					EvaluatedValue: v.value,
+					Creator: v.creator,
+					"Locked?": v.isLocked
+				}
+			}
+		}
+		console.table(_env)
+		console.log()
+		console.log(`Evaluating AST node with type "${ast.kind}"`)
+		console.log(chalk.bgGreen("Evaluation results:"))
+		console.log(eval_results)
+		console.log()
+		prompt("Any value to continue:")
+	}
+	console.log("\n\n!! Program finished.\n\n")
+  } else {
+  	await evaluate(program, env);
+  }
 }
 
 function repl() {

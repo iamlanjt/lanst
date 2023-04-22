@@ -3,6 +3,7 @@ import process from 'node:process'
 import { evaluate } from './interpreter.ts';
 import Parser from "../frontend/parser.ts";
 import { sleep } from '../other/sleep.ts';
+import { format } from 'node:util'
 
 export function createGlobalEnv() {
 	const env = new Environment()
@@ -125,7 +126,9 @@ export function createGlobalEnv() {
 	}
 
 	function _str_format(args: RuntimeVal[], env: Environment) {
-		
+		const c_args = args.map((a)=>{return a.value})
+		const origin = c_args.shift() as String
+		return MK_STRING(format(origin, ...c_args))
 	}
 
 	// Env-declare all predeclared functions
@@ -138,15 +141,17 @@ export function createGlobalEnv() {
 	env.declareVar("tonumber", MK_NATIVE_FN(_toNumber), true)
 	env.declareVar("typeof", MK_NATIVE_FN(_typeof), true)
 	env.declareVar("sleep", MK_NATIVE_FN(_sleep), true)
+	env.declareVar("format", MK_NATIVE_FN(_str_format), true)
 
 	return env
 }
  
 export default class Environment {
 	private parent?: Environment
-	private variables: Map<string, {
+	variables: Map<string, {
+		value: RuntimeVal,
+		creator: "INTERNAL" | "PROGRAM"
 		isLocked: boolean,
-		value: RuntimeVal
 	}>
 
 	constructor(parentENV?: Environment) {
@@ -155,14 +160,15 @@ export default class Environment {
 		this.variables = new Map()
 	}
 
-	public declareVar(varname: string, value: RuntimeVal, isLocked?: boolean): RuntimeVal {
+	public declareVar(varname: string, value: RuntimeVal, isLocked?: boolean, creator: "INTERNAL" | "PROGRAM" = "INTERNAL"): RuntimeVal {
 		if (this.variables.has(varname)) {
 			throw `Cannot reserve identifier "${varname}" as it's already reserved.`
 		}
 
 		this.variables.set(varname, {
+			value: value,
+			creator,
 			isLocked: isLocked ?? false,
-			value: value
 		})
 		return value
 	}
@@ -177,10 +183,10 @@ export default class Environment {
 		return this.parent.doesExist(varname)
 	}
 
-	public assignVar(varname: string, value: RuntimeVal): RuntimeVal {
+	public assignVar(varname: string, value: RuntimeVal, override = false): RuntimeVal {
 		const env = this.resolve(varname)
 		const v = env.variables.get(varname)
-		if (v?.isLocked)
+		if (v?.isLocked && !override)
 			throw `"${varname}" is currently locked for reassignment.`
 		env.variables.set(varname, {
 			isLocked: false,

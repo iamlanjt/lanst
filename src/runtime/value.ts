@@ -1,5 +1,6 @@
 import { Stmt } from "../ast_types/Statement.ts";
 import Environment from "./environment.ts";
+import { Decorator } from '../ast_types/Decorator.ts';
 
 export type ValueType =
   | "nirv"
@@ -8,7 +9,8 @@ export type ValueType =
   | "boolean"
   | "object"
   | "native-fn"
-  | "function";
+  | "function"
+  | "moved";
 
 export class RuntimeVal {
   type: ValueType;
@@ -33,6 +35,19 @@ export class NirvVal extends RuntimeVal {
 
 export function MK_NIRV() {
   return new NirvVal();
+}
+
+export class MovedVal extends RuntimeVal {
+	new_location: string
+
+	constructor(new_loc: string) {
+		super("moved")
+		this.new_location = new_loc
+	}
+}
+
+export function MK_MOVED(new_location: string) {
+	return new MovedVal(new_location);
 }
 
 export class BoolVal extends RuntimeVal {
@@ -119,12 +134,14 @@ export class FunctionValue extends RuntimeVal {
 	params: string[]
 	declarationEnv: Environment
 	body: Stmt[]
+	decorators: Decorator[]
 
-	constructor(name: string, params: string[], declenv: Environment, body: Stmt[]) {
+	constructor(name: string, params: string[], declenv: Environment, body: Stmt[], decorators: Decorator[]) {
 		super("function")
 		this.name = name
 		this.params = params
 		this.declarationEnv = declenv
 		this.body = body
+		this.decorators = decorators
 	}
 }
