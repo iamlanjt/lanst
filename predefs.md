@@ -1,7 +1,9 @@
 # Pre-env declarations
 
-### `sys_print(...args) -> nirv`
-### `sys_println(...args) -> nirv`
+# `system` library
+
+### `system.print(...args) -> nirv`
+### `system.println(...args) -> nirv`
 
 Print `...args` to the process.stdout.
 

@@ -1,0 +1,5 @@
+fn x(a) {
+	a + 2
+} ""
+
+system.println(x, x("a"))

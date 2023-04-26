@@ -1,4 +1,4 @@
-import { MK_BOOL, MK_NATIVE_FN, MK_NIRV, MK_NUMBER, MK_STRING, NumberVal, RuntimeVal, StringVal } from './value.ts';
+import { MK_BOOL, MK_NATIVE_FN, MK_NIRV, MK_NUMBER, MK_OBJECT, MK_STRING, NumberVal, RuntimeVal, StringVal } from './value.ts';
 import process from 'node:process'
 import { evaluate } from './interpreter.ts';
 import Parser from "../frontend/parser.ts";
@@ -12,18 +12,19 @@ export function createGlobalEnv() {
 	env.declareVar("nirv", MK_NIRV(), true)
 
 	// SYSTEM native def
-	env.declareVar("sys_print", MK_NATIVE_FN((args, scope) => {
-		let endstr = args.join(" ").replace(/\\n/g,"\n")
-		process.stdout.write(endstr)
-		return MK_NIRV()
-	}), true)
-
-	env.declareVar("sys_println", MK_NATIVE_FN((args, scope) => {
-		let endstr = args.join(" ").replace(/\\n/g, "\n")
-		endstr += "\n"
-		process.stdout.write(endstr)
-		return MK_NIRV()
-	}))
+	env.declareVar("system", MK_OBJECT(new Map()
+		.set("print", MK_NATIVE_FN((args, scope) => {
+			let endstr = args.join(" ").replace(/\\n/g,"\n")
+			process.stdout.write(endstr)
+			return MK_NIRV()
+		}))
+		.set("println", MK_NATIVE_FN((args, scope) => {
+			let endstr = (args.map(a=>{return (a.toString())})).join(" ").replace(/\\n/g, "\n")
+			endstr += "\n"
+			process.stdout.write(endstr)
+			return MK_NIRV()
+		}))
+	), true)
 
 	function sys_time(_args: RuntimeVal[], _env: Environment) {
 		return MK_NUMBER(Date.now())
@@ -129,6 +130,22 @@ export function createGlobalEnv() {
 		const c_args = args.map((a)=>{return a.value})
 		const origin = c_args.shift() as String
 		return MK_STRING(format(origin, ...c_args))
+	}
+
+	function _msg(args: RuntimeVal[], env: Environment) {
+		const user32 = new ffi.Library('user32', {
+			'MessageBoxW': [
+				'int32', [ 'int32', 'string', 'string', 'int32' ]
+			]
+		});
+		
+		const OK_or_Cancel = user32.MessageBoxW(
+			0, 'I am Node.JS!', 'Hello, World!', 1
+		);
+
+		console.log(OK_or_Cancel)
+
+		return MK_NIRV()
 	}
 
 	// Env-declare all predeclared functions

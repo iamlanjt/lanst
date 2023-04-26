@@ -11,4 +11,8 @@ export class BinaryExpr extends Expr {
 		this.right = right
 		this.operator = operator
 	}
+	
+	toString(): string {
+		return `${this.left} ${this.operator} ${this.right}`
+	}
 }

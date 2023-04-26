@@ -26,7 +26,7 @@ export async function eval_var_declaration(
     ? await evaluate(declaration.value, env)
     : MK_NIRV();
 
-  if((declaration.value as unknown as Identifier).kind === TokenType.Identifier) {
+  if(declaration.value && (declaration.value as unknown as Identifier).kind === TokenType.Identifier) {
 	env.assignVar(declaration.value.symbol, MK_MOVED(declaration.identifier), true)
   }
 

@@ -75,16 +75,26 @@ export default class Parser {
     return prev;
   }
 
+  private err(msg: string, token: Token) {
+	const err_scope = get_error_scope(15, 15, this.src, token.ln, token.lnidx);
+	let prefixed = "        ";
+	prefixed += "^ Parser Error on this line";
+	console.error(
+		`Parser Error:
+${msg}
+	${err_scope}
+${prefixed}
+
+ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
+		`
+	)
+	Deno.exit(1)
+  }
+
   private expect(type: TokenType, err: any) {
     const prev = this.tokens.shift() as Token;
     if (!prev || prev.type != type) {
-      const err_scope = get_error_scope(15, 15, this.src, prev.ln, prev.lnidx);
-      let prefixed = "        ";
-      prefixed += "^ Parser Error on this line";
-      console.error(
-        `Parser Error:\n "${err}" \n\nReceived token_type "${prev.type}", but was expecting token_type "${type}"\n	${err_scope}\n${prefixed}\n\nStack:\nError occured at Line ${prev.ln}, index ${prev.lnidx}`,
-      );
-      Deno.exit(1);
+      this.err(`"${err}" \n\nReceived token_type "${prev.type}", but was expecting token_type "${type}"`, prev)
     }
 
     return prev;

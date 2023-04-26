@@ -44,6 +44,10 @@ export class MovedVal extends RuntimeVal {
 		super("moved")
 		this.new_location = new_loc
 	}
+
+	toString() {
+		return `moved->${this.new_location}`
+	}
 }
 
 export function MK_MOVED(new_location: string) {
@@ -109,9 +113,23 @@ export class ObjectVal extends RuntimeVal {
     this.properties = properties;
   }
 
-  toString() {
-    return Object.fromEntries(this.properties);
+  async toString() {
+	let end = ""
+	for await (const entry of this.properties.entries()) {
+		const key = entry[0],
+			  value = await entry[1];
+		
+		if (end !== "")
+			end += ", "
+		
+		end += `${key.toString()}: ${value.toString()}`
+	}
+    return `{ ${end} }`
   }
+}
+
+export function MK_OBJECT(properties: Map<string, RuntimeVal>) {
+	return new ObjectVal(properties)
 }
 
 export type FunctionCall = (args: RuntimeVal[], env: Environment) => RuntimeVal;
@@ -143,5 +161,9 @@ export class FunctionValue extends RuntimeVal {
 		this.declarationEnv = declenv
 		this.body = body
 		this.decorators = decorators
+	}
+
+	toString(): string {
+		return `function ${this.name}`
 	}
 }

@@ -185,8 +185,29 @@ export async function eval_member_expr(
   expr: MemberExpr,
   env: Environment,
 ): RuntimeVal {
+	// identifier and member expr
+	let last_obj: MemberExpr = expr
+	let tree = []
+
+	tree.push(last_obj.property)
+	while (last_obj.object.kind === "MemberExpr") {
+		last_obj = last_obj.object
+		tree.push(last_obj.property)
+	}
+	last_obj = last_obj.object
+
+	if ((last_obj as unknown as Identifier).kind !== "Identifier") {
+		throw 'Expected identifier for tailing member expression, got ' + last_obj.kind
+	}
+
+	const base_entry = env.lookupVar((last_obj as unknown as Identifier).symbol)
+	let end_value = base_entry
+
+	for (let i = tree.length-1; i >= 0; i--) {
+		end_value = await end_value.properties.get(tree[i].symbol)
+	}
 	
-	return MK_NIRV()
+	return end_value
 }
 
 export async function eval_while_loop(expr: WhileLoop, env: Environment): RuntimeVal {
@@ -233,7 +254,7 @@ export async function eval_comparator(expr: Comparator, env: Environment): Runti
 		}
 	}
 
-	if (!compare_left || !compare_right)
+	if (compare_left == undefined || compare_right == undefined)
 		throw `Cannot compare NIRV values.`
 
 	let result

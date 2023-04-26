@@ -24,7 +24,7 @@ if ((mode as unknown) == "repl") {
 } else if (mode == "run") {
   run(filepath);
 }
-  
+
 
 function handle_interp_options(program: Program) {
 	const prefixer = "lan-interp";
@@ -48,6 +48,7 @@ async function run(filename: string) {
   const parser = new Parser(input);
   const env = createGlobalEnv();
   const program = parser.produceAST(input);
+  // console.log(program.body[1])
 
   const settings = handle_interp_options(program)
   if (settings.includes("lan-interp debug")) {

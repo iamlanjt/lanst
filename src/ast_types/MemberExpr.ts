@@ -11,4 +11,8 @@ export class MemberExpr extends Expr {
 		this.property = property
 		this.computed = computed
 	}
+
+	toString(): string {
+		return `{ ${this.object.toString()}: ${this.property.toString()} }`
+	}
 }

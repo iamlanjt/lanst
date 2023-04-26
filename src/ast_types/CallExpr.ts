@@ -9,4 +9,7 @@ export class CallExpr extends Expr {
 		this.args = args
 		this.caller = caller
 	}
+	toString(): string {
+		return this.value
+	}
 }
