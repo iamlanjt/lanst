@@ -4,6 +4,7 @@ import { evaluate } from './interpreter.ts';
 import Parser from "../frontend/parser.ts";
 import { sleep } from '../other/sleep.ts';
 import { format } from 'node:util'
+import fetch from 'npm:node-fetch@3.3.1';
 
 export function createGlobalEnv() {
 	const env = new Environment()
@@ -11,6 +12,7 @@ export function createGlobalEnv() {
 	env.declareVar("false", MK_BOOL(false), true)
 	env.declareVar("nirv", MK_NIRV(), true)
 
+	/** Declaring native modules, such as `system`, `network`, etc */
 	// SYSTEM native def
 	env.declareVar("system", MK_OBJECT(new Map()
 		.set("print", MK_NATIVE_FN((args, scope) => {
@@ -23,6 +25,14 @@ export function createGlobalEnv() {
 			endstr += "\n"
 			process.stdout.write(endstr)
 			return MK_NIRV()
+		}))
+	), true)
+
+	// NETWORK native def
+	env.declareVar("net", MK_OBJECT(new Map()
+		.set("get", MK_NATIVE_FN(async(args, scope) => {
+			const results = await fetch(args[0].value)
+			return MK_BOOL(results.ok)
 		}))
 	), true)
 

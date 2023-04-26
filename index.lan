@@ -1,5 +1,1 @@
-fn x(a) {
-	a + 2
-} ""
-
-system.println(x, x("a"))
+system.print(net.get("https://postman-echo.com/get"))
