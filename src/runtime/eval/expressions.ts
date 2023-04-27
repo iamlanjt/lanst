@@ -13,6 +13,7 @@ import Environment from "../environment.ts";
 import { evaluate } from "../interpreter.ts";
 import {
   FunctionValue,
+  ListVal,
   MK_BOOL,
   MK_NIRV,
   MovedVal,
@@ -27,6 +28,7 @@ import { Stmt } from '../../ast_types/Statement.ts';
 import { BoolVal } from '../value.ts';
 import { Thrower } from "../../ast_types/Thrower.ts";
 import { WhileLoop } from '../../ast_types/WhileLoop.ts';
+import { ListLiteral } from "../../ast_types/ListLiteral.ts";
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -103,6 +105,19 @@ export function eval_object_expr(
     object.properties.set(key, runtimeVal);
   }
   return object;
+}
+
+export function eval_list_expr(
+	list: ListLiteral,
+	_env: Environment
+): RuntimeVal {
+	const lst = new ListVal([])
+	for (const value of list.properties) {
+		const runtimeVal = value ?? MK_NIRV()
+
+		lst.properties.push(runtimeVal);
+	}
+	return lst;
 }
 
 // Format:

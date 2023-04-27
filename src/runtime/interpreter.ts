@@ -13,6 +13,7 @@ import {
   eval_assignment,
   eval_call_expr,
   eval_identifier,
+  eval_list_expr,
   eval_member_expr,
   eval_thrower,
   eval_while_loop,
@@ -36,6 +37,7 @@ import { Comparator } from "../ast_types/Comparator.ts";
 import { eval_comparator } from './eval/expressions.ts';
 import { Thrower } from "../ast_types/Thrower.ts";
 import { WhileLoop } from '../ast_types/WhileLoop.ts';
+import { ListLiteral } from "../ast_types/ListLiteral.ts";
 
 export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
   switch (astNode.kind) {
@@ -63,6 +65,9 @@ export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 	case "IfStatement":
 		return eval_if_statement(astNode as IfStatement, env)
 
+	case "ListLiteral":
+		return eval_list_expr(astNode as ListLiteral, env)
+	
     case "ObjectLiteral":
       return eval_object_expr(astNode as ObjectLiteral, env);
 

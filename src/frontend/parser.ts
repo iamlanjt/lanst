@@ -23,6 +23,7 @@ import { Comparator } from '../ast_types/Comparator.ts';
 import { Thrower } from "../ast_types/Thrower.ts";
 import { WhileLoop } from "../ast_types/WhileLoop.ts";
 import { Decorator } from "../ast_types/Decorator.ts";
+import { ListLiteral } from '../ast_types/ListLiteral.ts';
 
 function get_error_scope(
   leftExtension = 15,
@@ -260,13 +261,37 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
 
   private parse_comparator_expr(): Expr {
 	if (this.peek(1).type !== TokenType.Gt && this.peek(1).type !== TokenType.Lt && this.peek(1).type !== TokenType.DoubleEq)
-		return this.parse_object_expr()
+		return this.parse_list_expr()
 
-	let lhs = this.parse_object_expr()
+	let lhs = this.parse_list_expr()
 	const operator = this.eat()
-	const rhs = this.parse_object_expr()
+	const rhs = this.parse_list_expr()
 	
 	return new Comparator(lhs, rhs, operator)
+  }
+
+  private parse_list_expr(): Expr {
+	if (this.at.type !== TokenType.OpenBracket) {
+		return this.parse_object_expr()
+	}
+
+	this.eat()
+	const properties = []
+
+	while (this.not_eof && (this.at.type as unknown) != TokenType.CloseBracket) {
+		const value = this.parse_expr()
+		if ((this.at.type as unknown) == TokenType.Comma) {
+			this.eat();
+			properties.push(value);
+			continue;
+		} else if ((this.at.type as unknown) == TokenType.CloseBracket) {
+			properties.push(value);
+			continue;
+		}
+	}
+	this.eat()
+
+	return new ListLiteral(properties)
   }
 
   private parse_object_expr(): Expr {

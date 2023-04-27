@@ -7,4 +7,8 @@ export class NumericLiteral extends Expr {
 		super("NumericalLiteral")
 		this.value = value
 	}
+
+	toString(): string {
+		return this.value
+	}
 }

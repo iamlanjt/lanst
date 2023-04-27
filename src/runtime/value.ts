@@ -132,6 +132,31 @@ export function MK_OBJECT(properties: Map<string, RuntimeVal>) {
 	return new ObjectVal(properties)
 }
 
+export class ListVal extends RuntimeVal {
+	properties: RuntimeVal[];
+  
+	constructor(properties: RuntimeVal[]) {
+	  super("number");
+	  this.properties = properties;
+	}
+  
+	toString() {
+		let end = "[ "
+		for (let entry of this.properties) {
+			entry = entry ?? MK_NIRV()
+			if (end !== "[ ") {
+				end += ", "
+			}
+			end += entry.toString()
+		}
+		end += " ]"
+		return end
+	}
+}
+export function MK_LIST(properties: RuntimeVal[]) {
+	return new ListVal(properties)
+}
+
 export type FunctionCall = (args: RuntimeVal[], env: Environment) => RuntimeVal;
 export class NaitveFnValue extends RuntimeVal {
   type: "native-fn";

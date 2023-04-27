@@ -16,6 +16,7 @@ export type NodeType =
 
 					 | "Property"
 					 | "ObjectLiteral"
+					 | "ListLiteral"
 					 | "NumericalLiteral"
 					 | "StringLiteral"
 					 | "Identifier"
