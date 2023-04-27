@@ -38,6 +38,18 @@ import { eval_comparator } from './eval/expressions.ts';
 import { Thrower } from "../ast_types/Thrower.ts";
 import { WhileLoop } from '../ast_types/WhileLoop.ts';
 import { ListLiteral } from "../ast_types/ListLiteral.ts";
+import chalk from 'npm:chalk@5.2.0'
+
+export function interpreter_err(msg: string, node?: Stmt) {
+	let m = `${chalk.red("Uncaught error:")} ${msg}`
+
+	if (node && node["startingToken"]) {
+		m += `\n\nInterpError@${node.startingToken.ln}:${node.startingToken.lnidx}`
+	}
+
+	console.log(m)
+	Deno.exit(1)
+}
 
 export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
   switch (astNode.kind) {

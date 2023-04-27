@@ -1,6 +1,6 @@
 import { MK_BOOL, MK_NATIVE_FN, MK_NIRV, MK_NUMBER, MK_OBJECT, MK_STRING, NumberVal, RuntimeVal, StringVal } from './value.ts';
 import process from 'node:process'
-import { evaluate } from './interpreter.ts';
+import { evaluate, interpreter_err } from './interpreter.ts';
 import Parser from "../frontend/parser.ts";
 import { sleep } from '../other/sleep.ts';
 import { format } from 'node:util'
@@ -54,7 +54,7 @@ export function createGlobalEnv() {
 
 	function str_eq(args: RuntimeVal[], env: Environment) {
 		if (args.length < 2)
-			throw 'Must have at least 2 arguments'
+			interpreter_err('Must have at least 2 arguments')
 		if (args[0].type !== "string")
 			throw 'Argument 0 must be a typeof string, received ' + args[0].type
 		if (args[1].type !== "string")
@@ -133,7 +133,7 @@ export function createGlobalEnv() {
 	}
 
 	function _throw(args: RuntimeVal[], env: Environment): RuntimeVal {
-		throw `${(args.map((a)=>{return a.value})).join()}`
+		interpreter_err(`${(args.map((a)=>{return a.value})).join()}`)
 	}
 
 	function _str_format(args: RuntimeVal[], env: Environment) {

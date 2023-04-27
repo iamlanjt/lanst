@@ -137,7 +137,7 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
 		if (decorators.find((decorator)=>{
 			return decorator.type === this.at.type
 		}))
-			throw `Multiple decorators of the same type found in parsing: ${this.at.type}`
+		this.err(`Multiple decorators of the same type found: ${this.at.value}`, this.at)
 		decorators.push(new Decorator(this.eat().type)) // push all decorators into the decorator array
 	}
     this.eat(); // eat `fn` token
@@ -148,7 +148,7 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
     const params: string[] = [];
     for (const arg of args) {
       if (arg.kind !== "Identifier") {
-        throw `Expected identifier parameter, got ${arg.kind}`;
+		this.err(`Expected identifier parameter, got ${arg.kind}`, this.at)
       }
       params.push((arg as Identifier).symbol);
     }
@@ -185,7 +185,7 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
     if (this.at.type == TokenType.Semicolon) {
       this.eat();
       if (isLocked) {
-        throw `Non-assigned lockedreserve not allowed for "${identifier}"`;
+		this.err(`"${identifier}" is locked for reassignment.`, this.at)
       }
       return new VarDeclaration(isLocked, identifier, undefined);
     }
@@ -260,6 +260,9 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
   }
 
   private parse_comparator_expr(): Expr {
+	if (this.peek(1) === undefined) {
+		this.err(`Parser peeked expecting a token, but found undefined.`, this.at)
+	}
 	if (this.peek(1).type !== TokenType.Gt && this.peek(1).type !== TokenType.Lt && this.peek(1).type !== TokenType.DoubleEq)
 		return this.parse_list_expr()
 
@@ -410,7 +413,7 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
         property = this.parse_primary_expr();
 
         if (property.kind != "Identifier") {
-          throw `Right-Hand of '${operator.value}' must be an Identifier, found '${property.kind}'`;
+		  this.err(`Right-Hand of '${operator.value}' must be an Identifier, found '${property.kind}'`, this.at)
         }
       } else {
         computed = true;
