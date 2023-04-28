@@ -3,6 +3,7 @@ export type NodeType =
 					 | "Program"
 					 | "VarDeclaration"
 					 | "FunctionDeclaration"
+					 | "Class"
 					 | "IfStatement"
 					 | "WhileLoop"
 					 | "Decorator"
@@ -13,6 +14,7 @@ export type NodeType =
 					 | "Comment"
 					 | "Comparator"
 					 | "Thrower"
+					 | "New"
 
 					 | "Property"
 					 | "ObjectLiteral"

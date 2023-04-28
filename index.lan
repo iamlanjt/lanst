@@ -1,1 +1,7 @@
-res x
+class myClass {
+	fn init(num) {
+		system.print(num)
+	} ""
+}
+
+reslock c = new myClass(500)

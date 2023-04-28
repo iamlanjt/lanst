@@ -48,7 +48,7 @@ async function run(filename: string) {
   const parser = new Parser(input);
   const env = createGlobalEnv();
   const program = parser.produceAST(input);
-  // console.log(program.body[1])
+  // console.log(program.body)
 
   const settings = handle_interp_options(program)
   if (settings.includes("lan-interp debug")) {

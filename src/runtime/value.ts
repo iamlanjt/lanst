@@ -1,6 +1,9 @@
 import { Stmt } from "../ast_types/Statement.ts";
 import Environment from "./environment.ts";
 import { Decorator } from '../ast_types/Decorator.ts';
+import { StringLiteral } from "../ast_types/StringLiteral.ts";
+import { Token } from "../frontend/lexer.ts";
+import { Expr } from "../ast_types/Expression.ts";
 
 export type ValueType =
   | "nirv"
@@ -10,6 +13,8 @@ export type ValueType =
   | "object"
   | "native-fn"
   | "function"
+  | "class"
+  | "new"
   | "moved";
 
 export class RuntimeVal {
@@ -52,6 +57,21 @@ export class MovedVal extends RuntimeVal {
 
 export function MK_MOVED(new_location: string) {
 	return new MovedVal(new_location);
+}
+
+export class ClassVal extends RuntimeVal {
+	className: string
+	classMethods: Stmt[]
+
+	constructor(className: string, classMethods: Stmt[]) {
+		super("class")
+		this.className = className
+		this.classMethods = classMethods
+	}
+}
+
+export function MK_CLASS(name: string, methods: Stmt[]) {
+	return new ClassVal(name, methods)
 }
 
 export class BoolVal extends RuntimeVal {
@@ -170,6 +190,20 @@ export class NaitveFnValue extends RuntimeVal {
 }
 export function MK_NATIVE_FN(call: FunctionCall) {
   return new NaitveFnValue(call);
+}
+
+export class NewVal extends RuntimeVal {
+	target: string
+	args: any
+
+	constructor(target: string, args: Expr[]) {
+		super("new")
+		this.target = target
+		this.args = args
+	}
+}
+export function MK_NEW(target: string, args: any) {
+	return new NewVal(target, args)
 }
 
 export class FunctionValue extends RuntimeVal {

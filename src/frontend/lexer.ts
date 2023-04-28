@@ -22,6 +22,10 @@ export enum TokenType {
 	While = "While",
 	DoDebug = "DoDebug",
 	Memoize = "Memoize",
+
+	Class = "Class",
+	New = "New",
+	Self = "Self",
 	
 	BinaryOp = "BinaryOp",
 
@@ -41,6 +45,9 @@ export const RESERVED: Record<string, TokenType> = {
 	"while": TokenType.While,
 	"internal_do_enable_debugger": TokenType.DoDebug,
 	"memoize": TokenType.Memoize,
+	"class": TokenType.Class,
+	"self": TokenType.Identifier,
+	"new": TokenType.New,
 }
 
 export interface Token {

@@ -24,6 +24,8 @@ import { Thrower } from "../ast_types/Thrower.ts";
 import { WhileLoop } from "../ast_types/WhileLoop.ts";
 import { Decorator } from "../ast_types/Decorator.ts";
 import { ListLiteral } from '../ast_types/ListLiteral.ts';
+import { Class } from "../ast_types/Class.ts";
+import { New } from "../ast_types/New.ts";
 
 function get_error_scope(
   leftExtension = 15,
@@ -115,6 +117,10 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
   private parse_stmt(): Stmt {
     // skip to parse_expr
     switch (this.at.type) {
+		case TokenType.New:
+			return this.parse_new_stmt();
+		case TokenType.Class:
+			return this.parse_class_declaration();
 		case TokenType.Reserve:
 		case TokenType.ReserveLocked:
 			return this.parse_var_declaration();
@@ -129,6 +135,36 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
       default:
         return this.parse_expr();
     }
+  }
+
+  private parse_new_stmt(): Expr {
+	this.eat()
+	const target = this.expect(TokenType.Identifier, "Expecting identifier after 'new' keyword")
+	const args = this.parse_args()
+	return new New(target, args)
+  }
+
+  private parse_class_declaration(): Expr {
+	this.eat()
+	const className = this.expect(TokenType.Identifier, "Class names must be identifiers only.")
+	this.expect(TokenType.OpenBrace, "Missing opening brace in class declaration")
+
+	// Keep track of the class's methods
+	const classMethods:  Stmt[] = []
+
+    while (this.not_eof && this.at.type !== TokenType.CloseBrace) {
+      const innerStatement = this.parse_stmt()
+	  if (innerStatement.kind !== "FunctionDeclaration") {
+		this.err("Only function declarations are allowed in the beginning scope of a class", this.at)
+	  }
+	  
+	  classMethods.push(innerStatement)
+    }
+
+	this.expect(TokenType.CloseBrace, "Missing closing brace in class declaration")
+
+	const newClass = new Class(className.value, classMethods)
+	return newClass
   }
 
   private parse_fn_declaration(): Stmt {
@@ -433,6 +469,10 @@ ParseError@${token.ln}:${token.lnidx} - ${token.type} tkn
     const tk = this.at.type;
 
     switch (tk) {
+	  case TokenType.New: {
+		return this.parse_new_stmt()
+	  }
+
 	  case TokenType.Throw: {
 		return this.parse_throw()
 	  }

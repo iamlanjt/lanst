@@ -1,4 +1,4 @@
-import { RuntimeVal, StringVal } from "./value.ts";
+import { NewVal, RuntimeVal, StringVal } from "./value.ts";
 import {
   BinaryExpr,
   Identifier,
@@ -12,9 +12,11 @@ import { VarDeclaration } from "../ast_types/VariableDeclaration.ts";
 import {
   eval_assignment,
   eval_call_expr,
+  eval_class,
   eval_identifier,
   eval_list_expr,
   eval_member_expr,
+  eval_new,
   eval_thrower,
   eval_while_loop,
   evaluate_binary_expr,
@@ -39,6 +41,8 @@ import { Thrower } from "../ast_types/Thrower.ts";
 import { WhileLoop } from '../ast_types/WhileLoop.ts';
 import { ListLiteral } from "../ast_types/ListLiteral.ts";
 import chalk from 'npm:chalk@5.2.0'
+import { Class } from "../ast_types/Class.ts";
+import { New } from "../ast_types/New.ts";
 
 export function interpreter_err(msg: string, node?: Stmt) {
 	let m = `${chalk.red("Uncaught error:")} ${msg}`
@@ -73,6 +77,12 @@ export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 
 	case "WhileLoop":
 		return await eval_while_loop(astNode as WhileLoop, env)
+
+	case "New":
+		return await eval_new(astNode as NewVal, env)
+
+	case "Class":
+		return eval_class(astNode as Class, env)
 
 	case "IfStatement":
 		return eval_if_statement(astNode as IfStatement, env)

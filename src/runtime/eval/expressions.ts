@@ -7,11 +7,12 @@ import { MemberExpr } from "../../ast_types/MemberExpr.ts";
 import { ObjectLiteral } from "../../ast_types/ObjectLiteral.ts";
 import { StringLiteral } from "../../ast_types/StringLiteral.ts";
 import { VarDeclaration } from "../../ast_types/VariableDeclaration.ts";
-import { Expr, NumericLiteral } from "../../ast_types/types.ts";
+import { Expr, FunctionDeclaration, NumericLiteral } from "../../ast_types/types.ts";
 import { TokenType } from "../../frontend/lexer.ts";
 import Environment from "../environment.ts";
 import { evaluate } from "../interpreter.ts";
 import {
+ClassVal,
   FunctionValue,
   ListVal,
   MK_BOOL,
@@ -29,6 +30,11 @@ import { BoolVal } from '../value.ts';
 import { Thrower } from "../../ast_types/Thrower.ts";
 import { WhileLoop } from '../../ast_types/WhileLoop.ts';
 import { ListLiteral } from "../../ast_types/ListLiteral.ts";
+import { Class } from "../../ast_types/Class.ts";
+import { MK_CLASS } from '../value.ts';
+import { NewVal } from '../value.ts';
+import { Token } from '../../frontend/lexer.ts';
+import { interpreter_err } from '../interpreter.ts';
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -235,6 +241,42 @@ export async function eval_while_loop(expr: WhileLoop, env: Environment): Runtim
 
 		condition_results = await eval_comparator(expr.condition, env)
 	}
+}
+
+export async function eval_new(expr: NewVal, env: Environment): RuntimeVal {
+	let last_results = null
+	const target_class = env.lookupVar((expr.target as unknown as Token).value)
+
+	if (target_class.type !== "class")
+		interpreter_err("'new' cannot be used on a non-class", expr)
+	const found_initializer = (target_class as ClassVal).classMethods.find((pred)=>{
+		return (pred as FunctionDeclaration).name === 'init'
+	})
+	if (!found_initializer) {
+		interpreter_err(`Unable to find initializer function 'init' of class '${(expr.target as unknown as Token).value}' for 'new' keyword`)
+	}
+
+	const scope = new Environment(env);
+	const func = (found_initializer as unknown as FunctionDeclaration)
+
+	for (let i = 0; i < expr.args.length; i++) {
+		// TODO check the bounds here
+		const varname = func.parameters[i];
+		scope.declareVar(varname, expr.args[i], false);
+	}
+
+	let result: RuntimeVal = MK_NIRV();
+
+	for await (const stmt of func.body) {
+		result = await evaluate(stmt, scope);
+	}
+
+	return result ?? MK_NIRV()
+}
+
+export async function eval_class(expr: Class, env: Environment): RuntimeVal {
+	env.declareVar(expr.className, MK_CLASS(expr.className, expr.classMethods))
+	return MK_CLASS(expr.className, expr.classMethods)
 }
 
 export async function eval_if_statement(expr: IfStatement, env: Environment): RuntimeVal {
