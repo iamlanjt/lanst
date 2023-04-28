@@ -206,6 +206,33 @@ export async function eval_member_expr(
   expr: MemberExpr,
   env: Environment,
 ): RuntimeVal {
+	/*
+	if (expr.kind === "Class") {
+		let last_obj: MemberExpr = expr
+		let tree = []
+
+		tree.push(last_obj.property)
+		while (last_obj.object.kind === "MemberExpr") {
+			last_obj = last_obj.object
+			tree.push(last_obj.property)
+		}
+		last_obj = last_obj.object
+
+		if ((last_obj as unknown as Identifier).kind !== "Identifier") {
+			throw 'Expected identifier for tailing member expression, got ' + last_obj.kind
+		}
+
+		const base_entry = env.lookupVar((last_obj as unknown as Identifier).symbol)
+		let end_value = base_entry
+
+		for (let i = tree.length-1; i >= 0; i--) {
+			end_value = await end_value.properties.get(tree[i].symbol)
+		}
+		
+		return end_value
+	}
+	*/
+
 	// identifier and member expr
 	let last_obj: MemberExpr = expr
 	let tree = []
@@ -271,7 +298,7 @@ export async function eval_new(expr: NewVal, env: Environment): RuntimeVal {
 		result = await evaluate(stmt, scope);
 	}
 
-	return result ?? MK_NIRV()
+	return target_class // MK_CLASS((expr.target as unknown as Token).value)
 }
 
 export async function eval_class(expr: Class, env: Environment): RuntimeVal {

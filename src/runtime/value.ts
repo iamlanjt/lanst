@@ -68,6 +68,10 @@ export class ClassVal extends RuntimeVal {
 		this.className = className
 		this.classMethods = classMethods
 	}
+
+	toString() {
+		return `class ${this.className}`
+	}
 }
 
 export function MK_CLASS(name: string, methods: Stmt[]) {

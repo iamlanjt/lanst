@@ -1,7 +1,8 @@
 class myClass {
 	fn init(num) {
-		system.print(num)
+		system.println(num)
 	} ""
 }
 
 reslock c = new myClass(500)
+system.print(c)
