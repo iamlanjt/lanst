@@ -16,17 +16,21 @@ export function createGlobalEnv() {
 	// SYSTEM native def
 	env.declareVar("system", MK_OBJECT(new Map()
 		.set("print", MK_NATIVE_FN((args, scope) => {
-			let endstr = args.join(" ").replace(/\\n/g,"\n")
-			process.stdout.write(endstr)
+			console.log(args)
 			return MK_NIRV()
 		}))
 		.set("println", MK_NATIVE_FN((args, scope) => {
-			let endstr = (args.map(a=>{return (a.toString())})).join(" ").replace(/\\n/g, "\n")
+			let endstr = (args.toString()).join(" ")
 			endstr += "\n"
-			process.stdout.write(endstr)
+			console.log(endstr)
 			return MK_NIRV()
 		}))
 	), true)
+
+	// FILE native def
+	env.declareVar("file", MK_OBJECT(new Map()
+		.set("read")
+	))
 
 	// NETWORK native def
 	env.declareVar("net", MK_OBJECT(new Map()

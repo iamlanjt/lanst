@@ -4,6 +4,7 @@ import { Decorator } from '../ast_types/Decorator.ts';
 import { StringLiteral } from "../ast_types/StringLiteral.ts";
 import { Token } from "../frontend/lexer.ts";
 import { Expr } from "../ast_types/Expression.ts";
+import { interpreter_err } from './interpreter.ts';
 
 export type ValueType =
   | "nirv"
@@ -112,28 +113,11 @@ export function MK_NUMBER(n = 0) {
   return new NumberVal(n);
 }
 
-export class StringVal extends RuntimeVal {
-  value: string;
-
-  constructor(value: string) {
-    super("string");
-    this.value = value;
-  }
-
-  toString() {
-    return this.value;
-  }
-}
-
-export function MK_STRING(str: string) {
-  return new StringVal(str);
-}
-
 export class ObjectVal extends RuntimeVal {
   properties: Map<string, RuntimeVal>;
 
-  constructor(properties: Map<string, RuntimeVal>) {
-    super("number");
+  constructor(type: ValueType, properties: Map<string, RuntimeVal>) {
+    super(type);
     this.properties = properties;
   }
 
@@ -152,8 +136,80 @@ export class ObjectVal extends RuntimeVal {
   }
 }
 
+export function js_object_to_lanst_object(object: {}): ObjectVal {
+	const return_obj = MK_OBJECT(new Map())
+	for (const [key, value] of Object.entries(object)) {
+		switch (typeof value) {
+			case 'object': {
+				return_obj.properties.set(key, js_object_to_lanst_object(value))
+				break
+			}
+			case 'string': {
+				return_obj.properties.set(key, MK_STRING(value))
+				break
+			}
+			case 'number': {
+				return_obj.properties.set(key, MK_NUMBER(value))
+				break
+			}
+			case 'boolean': {
+				return_obj.properties.set(key, MK_BOOL(value))
+				break
+			}
+			case 'undefined': {
+				return_obj.properties.set(key, MK_NIRV())
+				break
+			}
+			default: {
+				// last resort in case of the conversion already being completed, just set the base key, value pair
+				return_obj.properties.set(key, value)
+				break
+			}
+		}
+	}
+	
+	return return_obj
+}
+
+export class StringVal extends ObjectVal {
+  value: string;
+
+  constructor(value: string) {
+    super("string", new Map()
+		.set("split", MK_NATIVE_FN((args, scope)=>{
+			let splitBy = args[0]
+			if (splitBy) {
+				if (splitBy.type !== "string")
+					interpreter_err(`Expected 'string', got ${splitBy.type} in native 'split' function argument 1.`)
+				splitBy = (splitBy as unknown as StringVal).value
+			}
+			const splt = this.value.split(splitBy)
+			return js_object_to_lanst_object(splt)
+		}))
+	)
+    this.value = value;
+  }
+  async toString() {
+	let end = ""
+	for await (const entry of this.properties.entries()) {
+		const key = entry[0],
+			  value = await entry[1];
+		
+		if (end !== "")
+			end += ", "
+		
+		end += `${key.toString()}: ${value.toString()}`
+	}
+    return `{ ${end} }`
+  }
+}
+
+export function MK_STRING(str: string) {
+  return new StringVal(str);
+}
+
 export function MK_OBJECT(properties: Map<string, RuntimeVal>) {
-	return new ObjectVal(properties)
+	return new ObjectVal("object", properties)
 }
 
 export class ListVal extends RuntimeVal {
