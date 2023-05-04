@@ -33,6 +33,8 @@ export enum TokenType {
 	ReserveLocked = "ReserveLocked",
 	Throw = "Throw",
 
+	Export = "Export",
+
 	EOF = "EOF",
 }
 
@@ -48,6 +50,7 @@ export const RESERVED: Record<string, TokenType> = {
 	"class": TokenType.Class,
 	"self": TokenType.Identifier,
 	"new": TokenType.New,
+	"export": TokenType.Export,
 }
 
 export interface Token {
