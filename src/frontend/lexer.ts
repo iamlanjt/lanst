@@ -38,6 +38,7 @@ export enum TokenType {
 	EOF = "EOF",
 }
 
+// All reserved keywords in Lanst
 export const RESERVED: Record<string, TokenType> = {
 	"res": TokenType.Reserve,
 	"reslock": TokenType.ReserveLocked,
@@ -61,26 +62,26 @@ export interface Token {
 export class Token {
 	value: string
 	type: TokenType
-	ln: number
-	lnidx: number
+	line: number
+	column: number
 
-	constructor(value: string = "", type: TokenType, ln: number, lnidx: number) {
+	constructor(value: string = "", type: TokenType, line: number, column: number) {
 		this.value = value
 		this.type = type
-		this.ln = ln
-		this.lnidx = lnidx
+		this.line = line
+		this.column = column
 	}
 }
 
-function is_ident_matching(str: string): boolean {
+function isIdentifier(str: string): boolean {
 	return /^[a-zA-Z_]+$/.test(str);
 }
 
-function isskippable(str: string) {
+function isWhitespace(str: string): boolean {
 	return str == ' ' || str == '\n' || str == '\t' || str == '\r'
 }
 
-function isint(str: string): boolean {
+function isNumber(str: string): boolean {
 	const c = str.charCodeAt(0)
 	const bounds = ['0'.charCodeAt(0), '9'.charCodeAt(0)]
 
@@ -91,93 +92,93 @@ export function tokenize(source: string): Token[] {
 	const tokens = new Array<Token>
 	const src = source.split("")
 	let line = 1
-	let line_idx = 1
+	let column = 1
 
 	while (src.length > 0) {
-		line_idx++
+		column++
 		switch (src[0].toString()) {
 			case '?': {
-				tokens.push(new Token(src.shift(), TokenType.Slash, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Slash, line, column))
 				break
 			}
 			case '(': {
-				tokens.push(new Token(src.shift(), TokenType.OpenParen, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.OpenParen, line, column))
 				break
 			}
 			case ')': {
-				tokens.push(new Token(src.shift(), TokenType.CloseParen, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.CloseParen, line, column))
 				break
 			}
 			case '{': {
-				tokens.push(new Token(src.shift(), TokenType.OpenBrace, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.OpenBrace, line, column))
 				break
 			}
 			case '}': {
-				tokens.push(new Token(src.shift(), TokenType.CloseBrace, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.CloseBrace, line, column))
 				break
 			}
 			case '[': {
-				tokens.push(new Token(src.shift(), TokenType.OpenBracket, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.OpenBracket, line, column))
 				break
 			}
 			case ']': {
-				tokens.push(new Token(src.shift(), TokenType.CloseBracket, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.CloseBracket, line, column))
 				break
 			}
 			case '>': {
-				tokens.push(new Token(src.shift(), TokenType.Gt, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Gt, line, column))
 				break
 			}
 			case '<': {
-				tokens.push(new Token(src.shift(), TokenType.Lt, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Lt, line, column))
 				break
 			}
 			case '+': {
-				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, column))
 				break
 			}
 			case '-': {
 				if (src[1] === ">") {
 					src.shift()
 					src.shift()
-					tokens.push(new Token("->", TokenType.Arrow, line, line_idx))
+					tokens.push(new Token("->", TokenType.Arrow, line, column))
 					break
 				}
-				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, column))
 				break
 			}
 			case '*': {
-				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, column))
 				break
 			}
 			case '/': {
-				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.BinaryOp, line, column))
 				break
 			}
 			case '=': {
 				if (src[1] === "=") {
 					src.shift()
 					src.shift()
-					tokens.push(new Token("==", TokenType.DoubleEq, line, line_idx))
+					tokens.push(new Token("==", TokenType.DoubleEq, line, column))
 				} else {
-					tokens.push(new Token(src.shift(), TokenType.Eq, line, line_idx))
+					tokens.push(new Token(src.shift(), TokenType.Eq, line, column))
 				}
 				break
 			}
 			case ';': {
-				tokens.push(new Token(src.shift(), TokenType.Semicolon, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Semicolon, line, column))
 				break
 			}
 			case ':': {
-				tokens.push(new Token(src.shift(), TokenType.Colon, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Colon, line, column))
 				break
 			}
 			case ',': {
-				tokens.push(new Token(src.shift(), TokenType.Comma, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Comma, line, column))
 				break
 			}
 			case '.': {
-				tokens.push(new Token(src.shift(), TokenType.Dot, line, line_idx))
+				tokens.push(new Token(src.shift(), TokenType.Dot, line, column))
 				break
 			}
 			case '"': {
@@ -186,51 +187,51 @@ export function tokenize(source: string): Token[] {
 		
 				while (src.length > 0 && src[0] !== '"') {
 				  if (src[0] === "\n") {
-					console.error(`SyntaxError: Strings must not span newlines, at line ${line}:${line_idx}`)
+					console.error(`SyntaxError: Strings must not span newlines, at line ${line}:${column}`)
 					Deno.exit(1)
 				  }
 				  str += src.shift()
 				}
 		
 				if (src.length === 0) {
-				  console.error(`SyntaxError: Unterminated string literal at line ${line}:${line_idx}`)
+				  console.error(`SyntaxError: Unterminated string literal at line ${line}:${column}`)
 				  Deno.exit(1)
 				}
 		
 				src.shift()
 		
-				tokens.push(new Token(str, TokenType.String, line, line_idx))
+				tokens.push(new Token(str, TokenType.String, line, column))
 				break
 			}
 			default: {
 				// Handle multichar token
 
-				if (isint(src[0])) {
+				if (isNumber(src[0])) {
 					let num = ""
 
-					while(src.length > 0 && isint(src[0])) {
+					while(src.length > 0 && isNumber(src[0])) {
 						num += src.shift()
 					}
 
-					tokens.push(new Token(num, TokenType.Number, line, line_idx))
-				} else if(is_ident_matching(src[0])) {
+					tokens.push(new Token(num, TokenType.Number, line, column))
+				} else if(isIdentifier(src[0])) {
 					let identifier = ""
 
-					while(src.length > 0 && is_ident_matching(src[0])) {
+					while(src.length > 0 && isIdentifier(src[0])) {
 						identifier += src.shift()
 					}
 
 
 					const reserved = RESERVED[identifier]
 					if (reserved == undefined) {
-						tokens.push(new Token(identifier, TokenType.Identifier, line, line_idx))
+						tokens.push(new Token(identifier, TokenType.Identifier, line, column))
 					} else {
-						tokens.push(new Token(identifier, reserved, line, line_idx))
+						tokens.push(new Token(identifier, reserved, line, column))
 					}
-				} else if(isskippable(src[0])) {
+				} else if(isWhitespace(src[0])) {
 					if (src[0] == "\n") {
 						line++
-						line_idx = 0
+						column = 0
 					}
 					src.shift()
 				} else {
@@ -242,6 +243,6 @@ export function tokenize(source: string): Token[] {
 		}
 	}
 
-	tokens.push(new Token("EndOfFile", TokenType.EOF, line, line_idx))
+	tokens.push(new Token("EndOfFile", TokenType.EOF, line, column))
 	return tokens
 }
