@@ -17,7 +17,6 @@
 
 # Lanst language
 
-Welcome to Lanst, a language that brings absolutely nothing to the innovation of new programming languages.
 ![lizard](https://user-images.githubusercontent.com/74612839/232858777-32724d53-56bd-4c55-b28d-dff1bd4605bb.png)
 
 # Get Started with Lanst
