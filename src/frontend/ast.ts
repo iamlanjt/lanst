@@ -7,6 +7,7 @@ export type NodeType =
 					 | "IfStatement"
 					 | "WhileLoop"
 					 | "Decorator"
+					 | "TryCatch"
 					  // EXPRESSIONS
 					 | "AssignmentExpr"
 					 | "MemberExpr"

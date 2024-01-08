@@ -189,18 +189,8 @@ export class StringVal extends ObjectVal {
 	)
     this.value = value;
   }
-  async toString() {
-	let end = ""
-	for await (const entry of this.properties.entries()) {
-		const key = entry[0],
-			  value = await entry[1];
-		
-		if (end !== "")
-			end += ", "
-		
-		end += `${key.toString()}: ${value.toString()}`
-	}
-    return `{ ${end} }`
+toString() {
+	return this.value
   }
 }
 

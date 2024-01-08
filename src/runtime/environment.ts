@@ -20,8 +20,7 @@ export function createGlobalEnv() {
 			return MK_NIRV()
 		}))
 		.set("println", MK_NATIVE_FN((args, scope) => {
-			let endstr = (args.toString()).join(" ")
-			endstr += "\n"
+			let endstr = (args).join(" ")
 			console.log(endstr)
 			return MK_NIRV()
 		}))

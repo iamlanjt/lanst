@@ -25,6 +25,7 @@ import { Decorator } from "../ast_types/Decorator.ts";
 import { ListLiteral } from '../ast_types/ListLiteral.ts';
 import { Class } from "../ast_types/Class.ts";
 import { New } from "../ast_types/New.ts";
+import { TryCatch } from "../ast_types/TryCatch.ts";
 
 function getErrorScope(
   leftExtension = 15,
@@ -123,6 +124,8 @@ ParseError@${token.line}:${token.column} - ${token.type} tkn
 		case TokenType.Reserve:
 		case TokenType.ReserveLocked:
 			return this.parse_var_declaration();
+		case TokenType.Exclaim:
+			return this.parse_try_catch();
 		case TokenType.Memoize:
 		case TokenType.Fn:
 			return this.parse_fn_declaration();
@@ -164,6 +167,44 @@ ParseError@${token.line}:${token.column} - ${token.type} tkn
 
 	const newClass = new Class(className.value, classMethods)
 	return newClass
+  }
+
+  private parse_try_catch(): Stmt {
+	this.eat() // eat `!` token
+	this.expectToken(TokenType.Identifier, "Expected `fuckaround`")
+
+	// parse try block
+	this.expectToken(TokenType.OpenBrace, "Expected open brace following try block")
+	const body: Stmt[] = []
+	while (this.at.type !== TokenType.CloseBrace) {
+		const bodyAdditive = this.parse_stmt()
+		body.push(bodyAdditive)
+	}
+	this.eat() // eat closing brace
+
+	// parse catch block
+	this.expectToken(TokenType.Ampersand, "Expected ampersand")
+	this.expectToken(TokenType.Identifier, "Expected `findout`")
+
+	const args = this.parse_args()
+    const params: string[] = [];
+    for (const arg of args) {
+      if (arg.kind !== "Identifier") {
+		this.err(`expectTokened identifier parameter, got ${arg.kind}`, this.at)
+      }
+      params.push((arg as Identifier).symbol);
+    }
+
+	this.expectToken(TokenType.OpenBrace, "Expected open brace following catch block")
+	const errorBody: Stmt[] = []
+	while (this.at.type !== TokenType.CloseBrace) {
+		const errorBodyAdditive = this.parse_stmt()
+		errorBody.push(errorBodyAdditive)
+	}
+	this.eat() // eat closing brace
+	const trycatch = new TryCatch(body, errorBody, params)
+	
+	return trycatch
   }
 
   private parse_fn_declaration(): Stmt {

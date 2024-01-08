@@ -18,6 +18,7 @@ import {
   eval_member_expr,
   eval_new,
   eval_thrower,
+  eval_try_catch,
   eval_while_loop,
   evaluate_binary_expr,
 } from "./eval/expressions.ts";
@@ -43,6 +44,7 @@ import { ListLiteral } from "../ast_types/ListLiteral.ts";
 import chalk from 'npm:chalk@5.2.0'
 import { Class } from "../ast_types/Class.ts";
 import { New } from "../ast_types/New.ts";
+import { TryCatch } from "../ast_types/TryCatch.ts";
 
 export function interpreter_err(msg: string, node?: Stmt) {
 	let m = `${chalk.red("Uncaught error:")} ${msg}`
@@ -68,6 +70,9 @@ export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 
 	case "Thrower": 
 		return eval_thrower(astNode as Thrower, env)
+
+	case "TryCatch":
+		return eval_try_catch(astNode as TryCatch, env)
 	
     case "Identifier":
       return eval_identifier(astNode as Identifier, env);

@@ -7,6 +7,7 @@ import { evaluate } from "../interpreter.ts";
 import { FunctionValue, MK_NIRV, RuntimeVal } from "../value.ts";
 import { Identifier } from '../../ast_types/Identifier.ts';
 import { MK_MOVED } from '../value.ts';
+import { TryCatch } from "../../ast_types/TryCatch.ts";
 
 export async function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NIRV();

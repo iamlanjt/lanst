@@ -17,8 +17,10 @@ ClassVal,
   ListVal,
   MK_BOOL,
   MK_NIRV,
+  MK_STRING,
   MovedVal,
   NaitveFnValue,
+  NirvVal,
   NumberVal,
   RuntimeVal,
   StringVal,
@@ -35,6 +37,7 @@ import { MK_CLASS } from '../value.ts';
 import { NewVal } from '../value.ts';
 import { Token } from '../../frontend/lexer.ts';
 import { interpreter_err } from '../interpreter.ts';
+import { TryCatch } from "../../ast_types/TryCatch.ts";
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -53,6 +56,35 @@ function eval_numeric_binary_expr(
     result = lhs.value / rhs.value;
   }
   return new NumberVal(result);
+}
+
+export async function eval_try_catch(
+	trycatch: TryCatch,
+	env: Environment
+): RuntimeVal {
+	let err: RuntimeVal = MK_NIRV()
+	let result: RuntimeVal = MK_NIRV()
+	for (const bodyStmt of trycatch.body) {
+		try {
+			result = await evaluate(bodyStmt, env)
+		} catch (caughtError) {
+			err = MK_STRING(caughtError)
+			break
+		}
+	}
+	
+	if (err.type !== "nirv") {
+		let errorResult: RuntimeVal = MK_NIRV()
+		let internalEnv = new Environment(env)
+		internalEnv.declareVar(trycatch.args[0], err, true, "PROGRAM")
+
+		for (const errorBodyStmt of trycatch.errorBody) {
+			result = await evaluate(errorBodyStmt, internalEnv)
+		}
+
+		return errorResult
+	}
+	return result
 }
 
 export async function evaluate_binary_expr(

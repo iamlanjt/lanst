@@ -121,4 +121,24 @@ You can call a function like so:
 add_to_x(50)
 ```
 
-# 
+# While Loops
+This is the syntax for while loops:
+```
+while (<condition>) {
+	<body>
+}
+```
+
+# Try-Catch
+Lanst names try-catch blocks as `!fuckaround-&findout` blocks, as it better suits the situation
+Example:
+```
+reslock x = 42
+!fuckaround {
+	x = 2
+} &findout (err) {
+	system.println("Caught error", err)
+}
+
+system.println("This code still runs, even after the error, because it was caught and dealt with.")
+```

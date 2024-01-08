@@ -23,6 +23,9 @@ export enum TokenType {
 	DoDebug = "DoDebug",
 	Memoize = "Memoize",
 
+	Exclaim = "Exclaim",
+	Ampersand = "Ampersand",
+
 	Class = "Class",
 	New = "New",
 	Self = "Self",
@@ -163,6 +166,14 @@ export function tokenize(source: string): Token[] {
 				} else {
 					tokens.push(new Token(src.shift(), TokenType.Eq, line, column))
 				}
+				break
+			}
+			case '!': {
+				tokens.push(new Token(src.shift(), TokenType.Exclaim, line, column))
+				break
+			}
+			case '&': {
+				tokens.push(new Token(src.shift(), TokenType.Ampersand, line, column))
 				break
 			}
 			case ';': {
