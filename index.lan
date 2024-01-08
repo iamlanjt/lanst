@@ -1,9 +1,15 @@
-res x = 5
-!fuckaround {
-	while (x > 0) {
-		system.println(10/x)
-		x = x - 1
+system.println("LANST REPL")
+res x = 1
+while (x == 1) {
+	res didError = false
+
+	system.println("Enter your code.")
+	reslock in = input()
+	!fuckaround {
+		reslock output = eval(in)
+	} &findout (potentialError) {
+		didError = true
+		system.println("Your code ran unsuccessfully:", potentialError)
 	}
-} &findout(err) {
-	system.println(err)
+	system.println(output)
 }

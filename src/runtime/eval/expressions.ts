@@ -103,6 +103,16 @@ export async function evaluate_binary_expr(
     );
   }
 
+  if ((lhs.type == "number" && rhs.type == "string") || (lhs.type == "string" && rhs.type == "number")) {
+	return MK_STRING(
+		(lhs.type == "number") ? `${(rhs as StringVal).value}${(lhs as NumberVal).value.toString()}` : `${(lhs as StringVal).value}${(rhs as NumberVal).value.toString()}`
+	)
+  }
+
+  if (lhs.type == "string" && rhs.type == "string") {
+	return MK_STRING(`${(lhs as StringVal).value}${(rhs as StringVal).value}`)
+  }
+
   return MK_NIRV();
 }
 
@@ -111,6 +121,8 @@ export function eval_identifier(
   env: Environment,
 ): RuntimeVal {
   const val = env.lookupVar(ident.symbol);
+  if (!val)
+	return undefined
   if (val.type === "moved") {
 	console.log(`Attempt to access value "${ident.symbol}" which has been moved to "${(val as MovedVal).new_location}".\n\nBasic error reconstruction:\n\nres ${ident.symbol} = 5\nres ${(val as MovedVal).new_location} = ${ident.symbol}\nsys_println(${ident.symbol}) <- "${ident.symbol}" no longer exists here`)
 	Deno.exit(1)
@@ -294,11 +306,12 @@ export async function eval_while_loop(expr: WhileLoop, env: Environment): Runtim
 	let condition_results = await eval_comparator(expr.condition, env)
 
 	while ((condition_results as unknown as BoolVal).value === true) {
+		const internal_environment = new Environment(env)
 		for await (const ex of expr.body) {
-			await evaluate(ex, env)
+			await evaluate(ex, internal_environment)
 		}
 
-		condition_results = await eval_comparator(expr.condition, env)
+		condition_results = await eval_comparator(expr.condition, internal_environment)
 	}
 }
 

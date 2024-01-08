@@ -5,12 +5,13 @@ import Parser from "../frontend/parser.ts";
 import { sleep } from '../other/sleep.ts';
 import { format } from 'node:util'
 import fetch from 'npm:node-fetch@3.3.1';
+import { createInterface } from 'node:readline';
 
 export function createGlobalEnv() {
 	const env = new Environment()
-	env.declareVar("true", MK_BOOL(true), true)
-	env.declareVar("false", MK_BOOL(false), true)
-	env.declareVar("nirv", MK_NIRV(), true)
+	env.declareVar("true", MK_BOOL(true), true, true)
+	env.declareVar("false", MK_BOOL(false), true, true)
+	env.declareVar("nirv", MK_NIRV(), true, true)
 
 	/** Declaring native modules, such as `system`, `network`, etc */
 	// SYSTEM native def
@@ -59,9 +60,9 @@ export function createGlobalEnv() {
 		if (args.length < 2)
 			interpreter_err('Must have at least 2 arguments')
 		if (args[0].type !== "string")
-			throw 'Argument 0 must be a typeof string, received ' + args[0].type
+			return false
 		if (args[1].type !== "string")
-			throw 'Argument 1 must be a typeof string, received ' + args[1].type
+			return false
 
 			
 		const compare_one = (args[0] as StringVal).value
@@ -71,6 +72,7 @@ export function createGlobalEnv() {
 	}
 
 	function _eval(args: RuntimeVal[], env: Environment) {
+		// console.warn(`EVAL is an unsandboxed body, make sure to only run code you trust!`)
 		if (args.length < 1)
 			throw 'Must have at least 1 argument'
 		if (args[0].type !== "string")
@@ -86,10 +88,8 @@ export function createGlobalEnv() {
 
 	function _input(_args: RuntimeVal[], _env: Environment) {
 		const inp = prompt("")
-		if (!inp)
-			return MK_NIRV()
 
-		return MK_STRING(inp)
+		return MK_STRING(inp || "")
 	}
 
 	function _toString(args: RuntimeVal[], env: Environment) {
@@ -182,6 +182,7 @@ export default class Environment {
 		value: RuntimeVal,
 		creator: "INTERNAL" | "PROGRAM"
 		isLocked: boolean,
+		isInternal: boolean
 	}>
 
 	constructor(parentENV?: Environment) {
@@ -190,7 +191,7 @@ export default class Environment {
 		this.variables = new Map()
 	}
 
-	public declareVar(varname: string, value: RuntimeVal, isLocked?: boolean, creator: "INTERNAL" | "PROGRAM" = "INTERNAL"): RuntimeVal {
+	public declareVar(varname: string, value: RuntimeVal, isLocked?: boolean, isInternal?: boolean, creator: "INTERNAL" | "PROGRAM" = "INTERNAL"): RuntimeVal {
 		if (this.variables.has(varname)) {
 			throw `Cannot reserve identifier "${varname}" as it's already reserved.`
 		}
@@ -199,6 +200,7 @@ export default class Environment {
 			value: value,
 			creator,
 			isLocked: isLocked ?? false,
+			isInternal: isInternal ?? false,
 		})
 		return value
 	}
@@ -227,7 +229,12 @@ export default class Environment {
 
 	public lookupVar(varname: string): RuntimeVal {
 		const env = this.resolve(varname)
-		return (env.variables.get(varname) as {isLocked: boolean, value: RuntimeVal}).value as RuntimeVal
+		return (env.variables.get(varname) as {isLocked: boolean, isInternal: boolean, value: RuntimeVal}).value as RuntimeVal
+	}
+
+	public getVar(varname: string) {
+		const env = this.resolve(varname)
+		return (env.variables.get(varname) as {isLocked: boolean, isInternal: boolean, value: RuntimeVal})
 	}
 
 	public resolve(varname: string): Environment {

@@ -28,7 +28,12 @@ export async function eval_var_declaration(
     : MK_NIRV();
 
   if(declaration.value && (declaration.value as unknown as Identifier).kind === TokenType.Identifier) {
-	env.assignVar(declaration.value.symbol, MK_MOVED(declaration.identifier), true)
+	const existingVar = env.getVar(declaration.value.symbol)
+	if (existingVar && existingVar.isInternal) {
+
+	} else {
+		env.assignVar(declaration.value.symbol, MK_MOVED(declaration.identifier), true)
+	}
   }
 
   return env.declareVar(declaration.identifier, value, declaration.locked, "PROGRAM");
