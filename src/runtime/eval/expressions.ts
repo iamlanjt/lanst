@@ -38,6 +38,8 @@ import { NewVal } from '../value.ts';
 import { Token } from '../../frontend/lexer.ts';
 import { interpreter_err } from '../interpreter.ts';
 import { TryCatch } from "../../ast_types/TryCatch.ts";
+import { eval_function_declaration } from "./statements.ts";
+import { GLOBAL_ENVIRONMENT } from "../../../main.ts";
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -146,7 +148,7 @@ export function eval_object_expr(
   obj: ObjectLiteral,
   env: Environment,
 ): RuntimeVal {
-  const object = new ObjectVal(new Map());
+  const object = new ObjectVal("object", new Map());
   for (const { key, value } of obj.properties) {
     const runtimeVal = (value == undefined)
       ? env.lookupVar(key)
@@ -189,13 +191,12 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 	// deno-lint-ignore no-async-promise-executor
 	return new Promise(async(res, rej)=>{
 		const args = await expr.args.map(async(arg) => await evaluate(arg, env));
-		//console.log('bargs', args)
 		const fn = await evaluate(expr.caller, env);
-		//console.log(expr.caller, fn)
 		const newargs: any = []
 		for (const arg of args) {
 			newargs.push((await arg))
 		}
+		// console.log(fn)
 		if (fn.type == "native-fn") {
 			const result = await (fn as NaitveFnValue).call(newargs, env);
 			//console.log('res', result)
@@ -239,6 +240,29 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 			res(result);
 			return
 		}
+		if (fn instanceof FunctionDeclaration) {
+			// console.log(expr)
+			const func = fn as FunctionDeclaration;
+			let lastCaller = expr.caller
+
+			const foundInEnv = env.getVar(lastCaller.object.symbol)
+			if (foundInEnv) {
+				const foundFunc = foundInEnv.value.classMethods.find((pre)=>{
+					return pre.name === expr.caller.property.symbol
+				})
+				const customEnv = new Environment(GLOBAL_ENVIRONMENT)
+				customEnv.declareVar("self", foundInEnv, true, true, "INTERNAL")
+				const evaled = eval_function_declaration(foundFunc as unknown as FunctionDeclaration, customEnv)
+
+				let result: RuntimeVal = MK_NIRV();
+
+				for await (const stmt of evaled.body) {
+					result = await evaluate(stmt, evaled.declarationEnv);
+				}
+
+				return result
+			}
+		}
 
 		throw `[LAN:E0001]: Attempt to call value that is not of type "function": ${
 			JSON.stringify(fn)
@@ -250,32 +274,27 @@ export async function eval_member_expr(
   expr: MemberExpr,
   env: Environment,
 ): RuntimeVal {
-	/*
-	if (expr.kind === "Class") {
-		let last_obj: MemberExpr = expr
-		let tree = []
+	let isClass = false
+	let computedVar = env.getVar(expr.object.symbol)
+	if (computedVar) {
+		if (computedVar.value.type === "class")
+			isClass = true
+	}
+	if (isClass) {
+		// We can skip tree running for classes, because only functions are allowed as declarations in it's scope, unlike objects, where there can be multiple depths.
+		const doesExist = expr
 
-		tree.push(last_obj.property)
-		while (last_obj.object.kind === "MemberExpr") {
-			last_obj = last_obj.object
-			tree.push(last_obj.property)
-		}
-		last_obj = last_obj.object
-
-		if ((last_obj as unknown as Identifier).kind !== "Identifier") {
-			throw 'Expected identifier for tailing member expression, got ' + last_obj.kind
-		}
-
-		const base_entry = env.lookupVar((last_obj as unknown as Identifier).symbol)
-		let end_value = base_entry
-
-		for (let i = tree.length-1; i >= 0; i--) {
-			end_value = await end_value.properties.get(tree[i].symbol)
+		const existingFunction = (computedVar as unknown as ClassVal).value.classMethods.find((pred)=>{
+			if ((pred as unknown as FunctionDeclaration).name === expr.property.symbol)
+				return true
+		})
+		if (!existingFunction) {
+			throw `Function ${expr.property.symbol} does not exist on class ${computedVar.value.className}`
 		}
 		
-		return end_value
+
+		return existingFunction
 	}
-	*/
 
 	// identifier and member expr
 	let last_obj: MemberExpr = expr
@@ -284,19 +303,28 @@ export async function eval_member_expr(
 	tree.push(last_obj.property)
 	while (last_obj.object.kind === "MemberExpr") {
 		last_obj = last_obj.object
+		// console.log(last_obj)
 		tree.push(last_obj.property)
 	}
 	last_obj = last_obj.object
 
+	/*
 	if ((last_obj as unknown as Identifier).kind !== "Identifier") {
 		throw 'Expected identifier for tailing member expression, got ' + last_obj.kind
 	}
+	*/
+
+	// console.log(last_obj.symbol, tree)
 
 	const base_entry = env.lookupVar((last_obj as unknown as Identifier).symbol)
 	let end_value = base_entry
 
 	for (let i = tree.length-1; i >= 0; i--) {
-		end_value = await end_value.properties.get(tree[i].symbol)
+		// console.log(tree[i].symbol)
+		if (end_value.properties !== undefined) {
+			end_value = await end_value.properties.get(tree[i].symbol)
+			// console.log(last_obj.symbol, end_value)
+		}
 	}
 	
 	return end_value
@@ -335,12 +363,6 @@ export async function eval_new(expr: NewVal, env: Environment): RuntimeVal {
 		// TODO check the bounds here
 		const varname = func.parameters[i];
 		scope.declareVar(varname, expr.args[i], false);
-	}
-
-	let result: RuntimeVal = MK_NIRV();
-
-	for await (const stmt of func.body) {
-		result = await evaluate(stmt, scope);
 	}
 
 	return target_class // MK_CLASS((expr.target as unknown as Token).value)

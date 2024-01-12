@@ -113,26 +113,63 @@ export function MK_NUMBER(n = 0) {
   return new NumberVal(n);
 }
 
+/*
+export function convertToRuntimeValues(m: Map<string, any>) {
+	const newMap = new Map()
+	m.forEach((propertyName, property) => {
+		switch(typeof property) {
+			case 'object': {
+				newMap.set(propertyName, convertToRuntimeValues(property))
+				break
+			}
+			case 'boolean': {
+				newMap.set(propertyName, MK_BOOL(property))
+				break
+			}
+			case 'number': {
+				newMap.set(propertyName, MK_NUMBER(property))
+				break
+			}
+			case 'string': {
+				if (typeof propertyName === 'function') {
+					newMap.set(propertyName, property)
+				} else {
+					newMap.set(propertyName, MK_STRING(property))
+				}
+				break
+			}
+			case 'function': {
+				newMap.set(propertyName, property)
+			}
+			default: {
+				newMap.set(propertyName, property)
+				break
+			}
+		}
+	})
+	return newMap
+}
+*/
+
 export class ObjectVal extends RuntimeVal {
   properties: Map<string, RuntimeVal>;
 
-  constructor(type: ValueType, properties: Map<string, RuntimeVal>) {
+  constructor(type: ValueType, properties: Map<string, any>) {
     super(type);
-    this.properties = properties;
+	properties.set('length', MK_NUMBER(properties.keys.length))
+	this.properties = properties
+    // this.properties = properties;
   }
 
-  async toString() {
-	let end = ""
-	for await (const entry of this.properties.entries()) {
-		const key = entry[0],
-			  value = await entry[1];
-		
-		if (end !== "")
-			end += ", "
-		
-		end += `${key.toString()}: ${value.toString()}`
+  toString() {
+	let endStr = "{\n\t"
+	let idx = 0
+	for (const [propertyName, property] of this.properties) {
+		endStr += `${(idx > 0) ? ',\n\t' : ''}${propertyName}: ${property.toString()}`
+		idx += 1
 	}
-    return `{ ${end} }`
+	endStr += '\n}'
+	return endStr
   }
 }
 

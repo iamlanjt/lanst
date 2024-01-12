@@ -40,26 +40,28 @@ function handle_interp_options(program: Program) {
 	}
 	return toggles
 }
+// initial scope; classes and other functions may use this, so we must export it
+export const GLOBAL_ENVIRONMENT = createGlobalEnv();
 
 async function run(filename: string) {
   const input = await Deno.readTextFile(filename);
   // const tokens = tokenize(input)
   // console.log(tokens)
   const parser = new Parser(input);
-  const env = createGlobalEnv();
   const program = parser.produceAST(input);
   // console.log(program.body)
 
   const settings = handle_interp_options(program)
   if (settings.includes("lan-interp debug")) {
+	console.log('Entered lanst debugger')
 	for (const ast of program.body) {
-		const eval_results = await evaluate(ast, env)
+		const eval_results = await evaluate(ast, GLOBAL_ENVIRONMENT)
 		console.log()
 		console.log(chalk.greenBright(`~~~~~~~~ New AST node evaluated ~~~~~~~~`))
 		console.log(`\nCurrent user-declared environment:\n`)
 		const _env: any[] = []
-		for(const key of env.variables.keys()) {
-			const v = env.variables.get(key)
+		for(const key of GLOBAL_ENVIRONMENT.variables.keys()) {
+			const v = GLOBAL_ENVIRONMENT.variables.get(key)
 			if (v.creator === "PROGRAM") {
 				_env[chalk.red(key)] = {
 					EvaluatedValue: v.value,
@@ -78,13 +80,12 @@ async function run(filename: string) {
 	}
 	console.log("\n\n!! Program finished.\n\n")
   } else {
-  	await evaluate(program, env);
+	// console.log(program.body[1].args)
+  	await evaluate(program, GLOBAL_ENVIRONMENT);
   }
 }
 
 function repl() {
-  const env = new Environment();
-
   console.log("REPL v0.0.1");
   while (true) {
     const input = prompt("> ");
@@ -96,7 +97,7 @@ function repl() {
 
     const program = parser.produceAST(input);
 
-    const result = evaluate(program, env);
+    const result = evaluate(program, GLOBAL_ENVIRONMENT);
     console.log(result.toString());
   }
 }

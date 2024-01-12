@@ -7,6 +7,15 @@ import { format } from 'node:util'
 import fetch from 'npm:node-fetch@3.3.1';
 import { createInterface } from 'node:readline';
 
+function* entries(obj) {
+    for (let key in obj)
+        yield [key, obj[key]];
+}
+
+function isAsyncFunction(func: any): boolean {
+	return func && {}.toString.call(func) === '[object AsyncFunction]';
+}
+
 export function createGlobalEnv() {
 	const env = new Environment()
 	env.declareVar("true", MK_BOOL(true), true, true)
@@ -21,7 +30,26 @@ export function createGlobalEnv() {
 			return MK_NIRV()
 		}))
 		.set("println", MK_NATIVE_FN((args, scope) => {
-			let endstr = (args).join(" ")
+			let endstr = ""
+			if (args.length > 1) {
+				endstr = (args).join(" ")
+			} else if(args.length === 1) {
+				if (args[0] === undefined) {
+					console.log(endstr)
+					return MK_NIRV()
+				}
+				if (isAsyncFunction(args[0])) {
+					args[0]().then((results) => {
+						return results
+					})
+				} else {
+					if (args[0]["toString"]) {
+						endstr = args[0].toString()
+					} else {
+						endstr = args[0]
+					}
+				}
+			}
 			console.log(endstr)
 			return MK_NIRV()
 		}))
@@ -36,7 +64,14 @@ export function createGlobalEnv() {
 	env.declareVar("net", MK_OBJECT(new Map()
 		.set("get", MK_NATIVE_FN(async(args, scope) => {
 			const results = await fetch(args[0].value)
-			return MK_BOOL(results.ok)
+			return MK_OBJECT(new Map(entries(results)))
+		}))
+		.set("getJSON", MK_NATIVE_FN(async(args, scope) => {
+			const results = await fetch(args[0].value) 
+			const jsonResults = await results.json().catch((err)=>{
+				throw `Failed to json-ify result`
+			})
+			return MK_OBJECT(new Map(entries(jsonResults)))
 		}))
 	), true)
 
