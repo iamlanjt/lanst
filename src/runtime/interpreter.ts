@@ -17,6 +17,7 @@ import {
   eval_list_expr,
   eval_member_expr,
   eval_new,
+  eval_thread,
   eval_thrower,
   eval_try_catch,
   eval_while_loop,
@@ -45,6 +46,7 @@ import chalk from 'npm:chalk@5.2.0'
 import { Class } from "../ast_types/Class.ts";
 import { New } from "../ast_types/New.ts";
 import { TryCatch } from "../ast_types/TryCatch.ts";
+import { Thread } from "../ast_types/Thread.ts";
 
 export function interpreter_err(msg: string, node?: Stmt) {
 	let m = `${chalk.red("Uncaught error:")} ${msg}`
@@ -73,9 +75,12 @@ export async function evaluate(astNode: Stmt, env: Environment): RuntimeVal {
 
 	case "TryCatch":
 		return eval_try_catch(astNode as TryCatch, env)
+
+  case "Thread":
+    return eval_thread(astNode as Thread, env)
 	
-    case "Identifier":
-      return eval_identifier(astNode as Identifier, env);
+  case "Identifier":
+    return eval_identifier(astNode as Identifier, env);
 
 	case "Comparator":
 		return await eval_comparator(astNode as Comparator, env)

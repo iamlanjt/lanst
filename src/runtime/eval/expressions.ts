@@ -40,6 +40,7 @@ import { interpreter_err } from '../interpreter.ts';
 import { TryCatch } from "../../ast_types/TryCatch.ts";
 import { eval_function_declaration } from "./statements.ts";
 import { GLOBAL_ENVIRONMENT } from "../../../main.ts";
+import { Thread } from "../../ast_types/Thread.ts";
 
 function eval_numeric_binary_expr(
   lhs: NumberVal,
@@ -58,6 +59,21 @@ function eval_numeric_binary_expr(
     result = lhs.value / rhs.value;
   }
   return new NumberVal(result);
+}
+
+export async function eval_thread (
+	thread: Thread,
+	env: Environment,
+) {
+	// no need to keep a results var, as it does not return anything
+
+	// create inner scope
+	const innerEnv = new Environment(env)
+	for (const bodyStmt of thread.body) {
+		evaluate(bodyStmt, env)
+	}
+
+	return MK_NIRV()
 }
 
 export async function eval_try_catch(
@@ -196,7 +212,7 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 		for (const arg of args) {
 			newargs.push((await arg))
 		}
-		// console.log(fn)
+		//console.log(fn)
 		if (fn.type == "native-fn") {
 			const result = await (fn as NaitveFnValue).call(newargs, env);
 			//console.log('res', result)
@@ -205,6 +221,7 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 		} else if (fn.type == "function") {
 			const func = fn as FunctionValue;
 			const scope = new Environment(func.declarationEnv);
+			//console.log(scope)
 
 			// should we try to pull previous requests from a cache?
 			const isMemoized = (func.decorators.find((decorator)=>{return (decorator.type as unknown) === TokenType.Memoize}) !== undefined)
@@ -216,10 +233,20 @@ export function eval_call_expr(expr: CallExpr, env: Environment): Promise<Runtim
 				return memoization.result
 			}
 
-			for (let i = 0; i < func.params.length; i++) {
-				// TODO check the bounds here
-				const varname = func.params[i];
-				scope.declareVar(varname, newargs[i], false);
+			if (func.noStrictParams === false) {
+				for (let i = 0; i < func.params.length; i++) {
+					// TODO check the bounds here
+					const varname = func.params[i];
+					scope.declareVar(varname, newargs[i], false);
+				}
+			} else {
+				for (let i = 0; i < newargs.length; i++) {
+					const varname = func.params[i]
+					if (varname === undefined) {
+						interpreter_err(`Function with noStrictParams enabled surpassed the bounds of it's declaration.`, expr)
+					}
+					scope.declareVar(varname, newargs[i])
+				}
 			}
 
 			let result: RuntimeVal = MK_NIRV();
@@ -325,6 +352,10 @@ export async function eval_member_expr(
 			end_value = await end_value.properties.get(tree[i].symbol)
 			// console.log(last_obj.symbol, end_value)
 		}
+	}
+
+	if (end_value === undefined) {
+		return MK_NIRV()
 	}
 	
 	return end_value

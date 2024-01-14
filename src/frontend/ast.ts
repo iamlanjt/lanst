@@ -8,6 +8,7 @@ export type NodeType =
 					 | "WhileLoop"
 					 | "Decorator"
 					 | "TryCatch"
+					 | "Thread"
 					  // EXPRESSIONS
 					 | "AssignmentExpr"
 					 | "MemberExpr"

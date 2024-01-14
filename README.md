@@ -121,12 +121,65 @@ You can call a function like so:
 add_to_x(50)
 ```
 
+# Inline Evalution
+> [!CAUTION]
+> Lanst will evaluate your code *as if it were in the program itself*. This means __**you should validate any user input before running it through the evaluator**__.
+
+Lanst supports inline evaluation. What does this mean? You can generate a Lanst function from a string. Example:
+```
+reslock str = "system.println(1)"
+reslock lanstFunction = eval(str)
+
+lanstFunction() ?? "-> 2"
+```
+
+> [!NOTE]
+> Evaluated functions share the same scope as where they were declared. If you want to pass in a value, you must declare it both when calling the resulting function, and also in the params declaration section. Example below
+```
+reslock lanstFunction = eval("system.println(scopedVariable)", [
+	"scopedVariable"
+])
+
+?? "The below code will error."
+lanstFunction()
+
+?? "The below code will error."
+lanstFunction(1, 2, 3)
+
+?? "The below code will succeed."
+lanstFunction(25)
+```
+
+```
+reslock str = "system.println(x)"
+reslock lanstFunction = eval(str, {
+	x: 25
+})
+
+lanstFunction() ?? "-> 25"
+```
+
 # While Loops
 This is the syntax for while loops:
 ```
 while (<condition>) {
 	<body>
 }
+```
+
+### Flow Switches
+The next section in this readme highlights flow switches. Flow switches are statments which adhere to the following syntax:
+
+<> = required
+
+[] = optional
+
+```
+!<flow_switch> {
+
+}[<post_flow_switch> (<arguments>) {
+
+}]
 ```
 
 # Try-Catch
@@ -142,3 +195,35 @@ reslock x = 42
 
 system.println("This code still runs, even after the error, because it was caught and dealt with.")
 ```
+
+# Asynchronous Execution
+Lanst can run code asynchronously if it is applied in a async block:
+```
+fn runLoopOne(x, sleepAmount) {
+    while (x > 0) {
+        system.println("First loop: " + x)
+        sleep(sleepAmount)
+        x = x - 1
+    }
+} "Run the first loop"
+
+fn runLoopTwo(x, sleepAmount) {
+    while (x > 0) {
+        system.println("Second loop: " + x)
+        sleep(sleepAmount)
+        x = x - 1
+    }
+} "Run the second loop"
+
+!async {
+    runLoopOne(100, 130)
+    runLoopTwo(100, 100)
+} ?? "Both of these loops run at the same time."
+```
+
+## Asynchronous Execution: sub-section for Eval function
+Lanst support inline evaluation via the `eval` function. Example:
+
+`eval("system.println(2)") ?? "Prints two to the console"`
+
+However, running eval in an await block does not 

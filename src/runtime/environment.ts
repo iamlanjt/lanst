@@ -1,4 +1,4 @@
-import { MK_BOOL, MK_NATIVE_FN, MK_NIRV, MK_NUMBER, MK_OBJECT, MK_STRING, NumberVal, RuntimeVal, StringVal } from './value.ts';
+import { ListVal, MK_BOOL, MK_FN, MK_NATIVE_FN, MK_NIRV, MK_NUMBER, MK_OBJECT, MK_STRING, NumberVal, ObjectVal, RuntimeVal, StringVal } from './value.ts';
 import process from 'node:process'
 import { evaluate, interpreter_err } from './interpreter.ts';
 import Parser from "../frontend/parser.ts";
@@ -6,6 +6,7 @@ import { sleep } from '../other/sleep.ts';
 import { format } from 'node:util'
 import fetch from 'npm:node-fetch@3.3.1';
 import { createInterface } from 'node:readline';
+import { Stmt } from '../ast_types/Statement.ts';
 
 function* entries(obj) {
     for (let key in obj)
@@ -64,7 +65,11 @@ export function createGlobalEnv() {
 	env.declareVar("net", MK_OBJECT(new Map()
 		.set("get", MK_NATIVE_FN(async(args, scope) => {
 			const results = await fetch(args[0].value)
-			return MK_OBJECT(new Map(entries(results)))
+			const thisMap = new Map(entries(results))
+			thisMap.set("toJSON", MK_NATIVE_FN(async(args, scope) => {
+				return MK_OBJECT(new Map(entries((await results.json()))))
+			}))
+			return MK_OBJECT(thisMap)
 		}))
 		.set("getJSON", MK_NATIVE_FN(async(args, scope) => {
 			const results = await fetch(args[0].value) 
@@ -106,19 +111,35 @@ export function createGlobalEnv() {
 		return MK_BOOL(compare_one === compare_two)
 	}
 
-	function _eval(args: RuntimeVal[], env: Environment) {
+	async function _eval(args: RuntimeVal[], env: Environment) {
 		// console.warn(`EVAL is an unsandboxed body, make sure to only run code you trust!`)
 		if (args.length < 1)
-			throw 'Must have at least 1 argument'
+			throw 'Must have at least 1 arguments'
 		if (args[0].type !== "string")
 			throw 'Argument 0 must be a typeof string, received ' + args[0].type
+		if (args[1] && args[1].type !== 'nirv') {
+			if (args[1].type !== "list") {
+				throw `Argument 1 must be a typeof NIRV or list, received ${args[1].type}`
+			}
+		}
 
 		const source = (args[0] as StringVal).value
 		
 		const parser = new Parser(source)
-		const _env = createGlobalEnv()
 		const program = parser.produceAST(source)
-		return evaluate(program, _env)
+		const body: Stmt[] = []
+		const params: string[] = []
+		if (args[1] && args[1].type !== "nirv") {
+			for (const param of (args[1] as ListVal).properties) {
+				params.push(param.value)
+			}
+		}
+		for (const bodyStmt of program.body) {
+			body.push(bodyStmt)
+		}
+		const fn = MK_FN("evalresult", params, env, body, [], true)
+		
+		return fn
 	}
 
 	function _input(_args: RuntimeVal[], _env: Environment) {

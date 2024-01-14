@@ -12,6 +12,7 @@ export type ValueType =
   | "string"
   | "boolean"
   | "object"
+  | "list"
   | "native-fn"
   | "function"
   | "class"
@@ -73,6 +74,10 @@ export class ClassVal extends RuntimeVal {
 	toString() {
 		return `class ${this.className}`
 	}
+}
+
+export function MK_FN(name: string, params: string[], env: Environment, body: Stmt[], decs: Decorator[], noStrictParams?: boolean) {
+	return new FunctionValue(name, params, env, body, decs, noStrictParams)
 }
 
 export function MK_CLASS(name: string, methods: Stmt[]) {
@@ -243,7 +248,7 @@ export class ListVal extends RuntimeVal {
 	properties: RuntimeVal[];
   
 	constructor(properties: RuntimeVal[]) {
-	  super("number");
+	  super("list");
 	  this.properties = properties;
 	}
   
@@ -299,14 +304,16 @@ export class FunctionValue extends RuntimeVal {
 	declarationEnv: Environment
 	body: Stmt[]
 	decorators: Decorator[]
+	noStrictParams: boolean
 
-	constructor(name: string, params: string[], declenv: Environment, body: Stmt[], decorators: Decorator[]) {
+	constructor(name: string, params: string[], declenv: Environment, body: Stmt[], decorators: Decorator[], noStrictParams?: boolean) {
 		super("function")
 		this.name = name
 		this.params = params
 		this.declarationEnv = declenv
 		this.body = body
 		this.decorators = decorators
+		this.noStrictParams = noStrictParams ?? false
 	}
 
 	toString(): string {

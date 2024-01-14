@@ -26,6 +26,7 @@ import { ListLiteral } from '../ast_types/ListLiteral.ts';
 import { Class } from "../ast_types/Class.ts";
 import { New } from "../ast_types/New.ts";
 import { TryCatch } from "../ast_types/TryCatch.ts";
+import { Thread } from "../ast_types/Thread.ts";
 
 function getErrorScope(
   leftExtension = 15,
@@ -81,7 +82,12 @@ export default class Parser {
   private err(msg: string, token: Token) {
 	const err_scope = getErrorScope(15, 15, this.src, token.line, token.column);
 	let prefixed = "        ";
-	prefixed += "^ Parser Error on this line";
+  let squiggles = ""
+  for (let i = 0; i < token.value.length; i++) {
+    squiggles += "‾"
+  }
+  squiggles = squiggles.substring(0, 20)
+	prefixed += `${(" ").repeat(token.column-1)}${squiggles}| Parser Error here`;
 	console.error(
 		`Parser Error:
 ${msg}
@@ -170,41 +176,51 @@ ParseError@${token.line}:${token.column} - ${token.type} tkn
   }
 
   private parse_try_catch(): Stmt {
-	this.eat() // eat `!` token
-	this.expectToken(TokenType.Identifier, "Expected `fuckaround`")
+    this.eat() // eat `!` token
+    const flowType = this.expectToken(TokenType.Identifier, "Expected identifier for program flow after `!`.")
 
-	// parse try block
-	this.expectToken(TokenType.OpenBrace, "Expected open brace following try block")
-	const body: Stmt[] = []
-	while (this.at.type !== TokenType.CloseBrace) {
-		const bodyAdditive = this.parse_stmt()
-		body.push(bodyAdditive)
-	}
-	this.eat() // eat closing brace
-
-	// parse catch block
-	this.expectToken(TokenType.Ampersand, "Expected ampersand")
-	this.expectToken(TokenType.Identifier, "Expected `findout`")
-
-	const args = this.parse_args()
-    const params: string[] = [];
-    for (const arg of args) {
-      if (arg.kind !== "Identifier") {
-		this.err(`expectTokened identifier parameter, got ${arg.kind}`, this.at)
-      }
-      params.push((arg as Identifier).symbol);
+    // parse try block
+    this.expectToken(TokenType.OpenBrace, "Expected open brace following program flow block")
+    const body: Stmt[] = []
+    while (this.at.type !== TokenType.CloseBrace) {
+      const bodyAdditive = this.parse_stmt()
+      body.push(bodyAdditive)
     }
+    this.eat() // eat closing brace
 
-	this.expectToken(TokenType.OpenBrace, "Expected open brace following catch block")
-	const errorBody: Stmt[] = []
-	while (this.at.type !== TokenType.CloseBrace) {
-		const errorBodyAdditive = this.parse_stmt()
-		errorBody.push(errorBodyAdditive)
-	}
-	this.eat() // eat closing brace
-	const trycatch = new TryCatch(body, errorBody, params)
-	
-	return trycatch
+    switch(flowType.value.toLowerCase()) {
+      case 'fuckaround': {
+        // parse catch block
+        this.expectToken(TokenType.Ampersand, "Expected ampersand")
+        this.expectToken(TokenType.Identifier, "Expected `findout`")
+
+        const args = this.parse_args()
+          const params: string[] = [];
+          for (const arg of args) {
+            if (arg.kind !== "Identifier") {
+          this.err(`expectTokened identifier parameter, got ${arg.kind}`, this.at)
+            }
+            params.push((arg as Identifier).symbol);
+          }
+
+        this.expectToken(TokenType.OpenBrace, "Expected open brace following catch block")
+        const errorBody: Stmt[] = []
+        while (this.at.type !== TokenType.CloseBrace) {
+          const errorBodyAdditive = this.parse_stmt()
+          errorBody.push(errorBodyAdditive)
+        }
+        this.eat() // eat closing brace
+        const trycatch = new TryCatch(body, errorBody, params)
+        
+        return trycatch
+      }
+      case "async": {
+        return new Thread(body)
+      }
+      default: {
+        this.err(`This flow switch has not been implemented.`, flowType)
+      }
+    }
   }
 
   private parse_fn_declaration(): Stmt {
