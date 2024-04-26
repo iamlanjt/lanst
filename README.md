@@ -182,20 +182,6 @@ The next section in this readme highlights flow switches. Flow switches are stat
 }]
 ```
 
-# Try-Catch
-Lanst names try-catch blocks as `!fuckaround-&findout` blocks, as it better suits the situation
-Example:
-```
-reslock x = 42
-!fuckaround {
-	x = 2
-} &findout (err) {
-	system.println("Caught error", err)
-}
-
-system.println("This code still runs, even after the error, because it was caught and dealt with.")
-```
-
 # Asynchronous Execution
 Lanst can run code asynchronously if it is applied in a async block:
 ```
