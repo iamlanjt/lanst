@@ -27,7 +27,7 @@ To use Lanst, you must use `deno` and run it from it's source.
 * Unzip
 * Open a terminal at ./
 * Put any code you want into `main.lan`, or enable the `REPL` in main.ts.
-* Enter `deno run -A main.ts`
+* Enter `deno run -A main.ts index.lan`
 
 # Documentation
 

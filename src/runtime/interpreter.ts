@@ -48,6 +48,7 @@ import { New } from "../ast_types/New.ts";
 import { TryCatch } from "../ast_types/TryCatch.ts";
 import { Thread } from "../ast_types/Thread.ts";
 
+
 export function interpreter_err(msg: string, node?: Stmt) {
 	let m = `${chalk.red("Uncaught error:")} ${msg}`
 

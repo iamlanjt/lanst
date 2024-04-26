@@ -24,6 +24,7 @@ ClassVal,
   NumberVal,
   RuntimeVal,
   StringVal,
+  MK_CLASS_OBJ
 } from "../value.ts";
 import { ObjectVal } from "../value.ts";
 import { Comparator } from '../../ast_types/Comparator.ts';
@@ -148,10 +149,30 @@ export function eval_identifier(
   return val;
 }
 
-export function eval_assignment(
+export async function eval_assignment(
   node: AssignmentExpr,
   env: Environment,
 ): RuntimeVal {
+  if (node.assignee.kind === "MemberExpr") {
+	console.log('abc')
+	// identifier and member expr
+	let last_obj: MemberExpr | Identifier = node.assignee as MemberExpr
+	let tree = []
+
+	tree.push(last_obj.property)
+	while (last_obj.object.kind === "MemberExpr") {
+		last_obj = last_obj.object as MemberExpr
+		// console.log(last_obj)
+		tree.push(last_obj.property)
+	}
+	last_obj = last_obj.object as Identifier
+
+	const base_entry = env.lookupVar((last_obj as unknown as Identifier).symbol)
+	if (!base_entry)
+		interpreter_err(`Failed to find "${last_obj.symbol}"`, node)
+
+	// for (const e )
+  }
   if (node.assignee.kind != "Identifier") {
     throw `Cannot assign ${node.assignee.kind} >INTO> IDENTIFIER`;
   }
@@ -302,7 +323,11 @@ export async function eval_member_expr(
   env: Environment,
 ): RuntimeVal {
 	let isClass = false
-	let computedVar = env.getVar(expr.object.symbol)
+	let topLevel = expr
+	while (topLevel.object.kind === "MemberExpr") {
+		topLevel = topLevel.object
+	}
+	let computedVar = env.getVar(topLevel.object.symbol)
 	if (computedVar) {
 		if (computedVar.value.type === "class")
 			isClass = true
@@ -346,12 +371,12 @@ export async function eval_member_expr(
 	const base_entry = env.lookupVar((last_obj as unknown as Identifier).symbol)
 	let end_value = base_entry
 
+	// console.log(expr, end_value)
 	for (let i = tree.length-1; i >= 0; i--) {
 		// console.log(tree[i].symbol)
-		if (end_value.properties !== undefined) {
-			end_value = await end_value.properties.get(tree[i].symbol)
-			// console.log(last_obj.symbol, end_value)
-		}
+		if (end_value === undefined)
+			return MK_NIRV()
+		end_value = await end_value.properties.get(tree[i].symbol)
 	}
 
 	if (end_value === undefined) {
@@ -379,7 +404,7 @@ export async function eval_new(expr: NewVal, env: Environment): RuntimeVal {
 	const target_class = env.lookupVar((expr.target as unknown as Token).value)
 
 	if (target_class.type !== "class")
-		interpreter_err("'new' cannot be used on a non-class", expr)
+		interpreter_err("'new' cannot be used on a non-class", expr as unknown as Stmt)
 	const found_initializer = (target_class as ClassVal).classMethods.find((pred)=>{
 		return (pred as FunctionDeclaration).name === 'init'
 	})
@@ -387,7 +412,11 @@ export async function eval_new(expr: NewVal, env: Environment): RuntimeVal {
 		interpreter_err(`Unable to find initializer function 'init' of class '${(expr.target as unknown as Token).value}' for 'new' keyword`)
 	}
 
+	const thisClass = MK_CLASS_OBJ(target_class as ClassVal, new Map(), [])
+
 	const scope = new Environment(env);
+	// Declare self ref
+	scope.declareVar("self", thisClass, true, true, "INTERNAL")
 	const func = (found_initializer as unknown as FunctionDeclaration)
 
 	for (let i = 0; i < expr.args.length; i++) {
@@ -395,6 +424,21 @@ export async function eval_new(expr: NewVal, env: Environment): RuntimeVal {
 		const varname = func.parameters[i];
 		scope.declareVar(varname, expr.args[i], false);
 	}
+
+	for (const classMethod of (target_class as unknown as ClassVal).classMethods) {
+		thisClass.classMethods.push(classMethod)
+	}
+
+	/*
+	const result = await eval_call_expr(new CallExpr(expr.args, expr as unknown as Expr), scope)
+	*/
+	for (const initStmt of (found_initializer as unknown as FunctionDeclaration).body) {
+		await evaluate(initStmt, scope)
+	}
+
+	thisClass.selfProps = (scope.getVar("self") as any) // im so sorry deno linter please dont take my family
+
+	console.log(thisClass)
 
 	return target_class // MK_CLASS((expr.target as unknown as Token).value)
 }

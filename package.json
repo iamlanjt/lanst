@@ -1,0 +1,13 @@
+{
+  "name": "lanst_language",
+  "version": "1.0.0",
+  "description": "* User Guide\r \t* [About The Lanst Language](#lanst-language)\r \t* [Get Started with Lanst](#get-started-with-lanst)\r \t* [Using Lanst](#using-lanst)\r \t* [Full User Guide](#documentation)\r \t\t* [Hello World](#hello-world)\r \t\t* [Fundementals](#fundementals)\r * Reference Manual\r \t* [types](#types)\r \t* [system](#system)\r \t\t* [print](#print)\r \t\t* [println](#println)\r \t* [net](#net)\r \t\t* [get](#get)",
+  "main": "main.ts",
+  "scripts": {
+	"runner": "deno run -A main.ts index.lan",
+	"repl": "deno run -A main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "iamlanjt",
+  "license": "ISC"
+}

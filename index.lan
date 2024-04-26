@@ -1,15 +1,4 @@
 ?? "!lan-interp debug"
 ?? "^ Remove the exclaimation point to enable in-terminal debugging through the main file"
 
-reslock lanstFunction = eval("system.println(scopedVariable)", [
-	"scopedVariable"
-])
-
-?? "The below code will error."
-lanstFunction()
-
-?? "The below code will error."
-lanstFunction(1, 2, 3)
-
-?? "The below code will succeed."
-lanstFunction(25)
+system.println("Hello, world!")

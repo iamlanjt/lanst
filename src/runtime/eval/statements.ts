@@ -36,7 +36,7 @@ export async function eval_var_declaration(
 	}
   }
 
-  return env.declareVar(declaration.identifier, value, declaration.locked, "PROGRAM");
+  return env.declareVar(declaration.identifier, value, declaration.locked, false, "PROGRAM");
 }
 
 export function eval_function_declaration(

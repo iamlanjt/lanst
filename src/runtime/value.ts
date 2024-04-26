@@ -16,6 +16,7 @@ export type ValueType =
   | "native-fn"
   | "function"
   | "class"
+  | "class-obj"
   | "new"
   | "moved";
 
@@ -76,12 +77,29 @@ export class ClassVal extends RuntimeVal {
 	}
 }
 
+export class ClassObjectVal extends RuntimeVal {
+	c: ClassVal
+	selfProps: Map<string, Stmt>
+	classMethods: Stmt[]
+
+	constructor(c: ClassVal, props: Map<string, Stmt>, methods: Stmt[]) {
+		super("class-obj")
+		this.c = c
+		this.selfProps = props
+		this.classMethods = methods
+	}
+}
+
 export function MK_FN(name: string, params: string[], env: Environment, body: Stmt[], decs: Decorator[], noStrictParams?: boolean) {
 	return new FunctionValue(name, params, env, body, decs, noStrictParams)
 }
 
 export function MK_CLASS(name: string, methods: Stmt[]) {
 	return new ClassVal(name, methods)
+}
+
+export function MK_CLASS_OBJ(c: ClassVal, props: Map<string, Stmt>, methods: Stmt[]) {
+	return new ClassObjectVal(c, props, methods)
 }
 
 export class BoolVal extends RuntimeVal {
